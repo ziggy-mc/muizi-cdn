@@ -9,6 +9,10 @@ The `BASE_URL` is required, please set it as your URL for the CDN to work proper
 It is recommended to run administrator in the terminal you are starting the CDN in.
 
 ## Introduction:
+What is a CDN? A CDN stands for **Content Delivery Network**.
+
+A CDN provides a way to upload and share images, videos or whatever you want.
+
 This project provides you with a fully functional cdn.
 The steps to get **your** CDN up and running is below.
 
@@ -65,3 +69,4 @@ mkdir uploads temp
 - This project was built on a windows pc, and has only been tested on a windows pc.
 - This project is recommended for personal projects, it has not been tested for production projects (bigger projects).
 - This project is still in beta, **may not** be fully optimized.
+- This project allows images, videos and gifs to be displayed in discord.
