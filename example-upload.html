@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CDN Upload</title>
+</head>
+<body>
+
+<h2>CDN Upload Test</h2>
+
+<input id="apikey" placeholder="API Key" style="width:400px">
+<br><br>
+
+<input type="file" id="file">
+<br><br>
+
+<button onclick="upload()">Upload</button>
+
+<br><br>
+
+<div id="status"></div>
+<progress id="progress" max="100" value="0" style="width:500px"></progress>
+
+<script>
+async function upload() {
+
+    const file = document.getElementById("file").files[0];
+    const apiKey = document.getElementById("apikey").value;
+
+    if (!file) return alert("Select a file.");
+
+    const form = new FormData();
+    form.append("file", file);
+
+    const xhr = new XMLHttpRequest();
+
+    xhr.open("POST", "https://cdn.example.com/upload");
+
+    xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
+
+    xhr.timeout = 1000 * 60 * 60; // 1 hour safety
+
+    const startTime = Date.now();
+
+    // ---------------- PROGRESS ----------------
+    xhr.upload.onprogress = (e) => {
+        if (!e.lengthComputable) return;
+
+        const percent = Math.round((e.loaded / e.total) * 100);
+        document.getElementById("progress").value = percent;
+
+        const elapsed = (Date.now() - startTime) / 1000;
+        const speed = e.loaded / elapsed / 1024 / 1024;
+
+        const remaining = (e.total - e.loaded) / (speed * 1024 * 1024);
+
+        document.getElementById("status").innerHTML = `
+            ${percent}%<br>
+            ${(e.loaded/1024/1024).toFixed(2)} MB / ${(e.total/1024/1024).toFixed(2)} MB<br>
+            ${speed.toFixed(2)} MB/s<br>
+            ETA: ${isFinite(remaining) ? remaining.toFixed(1) : "..."} sec
+        `;
+    };
+
+    // ---------------- SUCCESS ----------------
+    xhr.onload = () => {
+        if (xhr.status !== 200) {
+            document.getElementById("status").innerHTML =
+                "❌ Upload failed: " + xhr.responseText;
+            return;
+        }
+
+        const data = JSON.parse(xhr.responseText);
+
+        document.getElementById("status").innerHTML += `
+            <hr>
+            ✅ Upload complete!<br>
+            <a href="${data.url}" target="_blank">${data.url}</a>
+        `;
+    };
+
+    // ---------------- ERRORS ----------------
+    xhr.onerror = () => {
+        document.getElementById("status").innerHTML =
+            "❌ Network error (connection dropped)";
+    };
+
+    xhr.ontimeout = () => {
+        document.getElementById("status").innerHTML =
+            "❌ Upload timed out";
+    };
+
+    xhr.send(form);
+}
+</script>
+
+</body>
+</html>
