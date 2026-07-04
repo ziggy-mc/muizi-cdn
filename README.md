@@ -21,7 +21,7 @@ Install dependencies.
 ```bash
 cd ..\muizi-cdn
 npm init -y
-npm install express multer helmet cors compression dotenv
+npm install express busboy helmet cors compression dotenv crypto ffmpeg-static better-sqlite3
 ```
 
 ## Step 2:
