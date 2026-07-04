@@ -28,7 +28,7 @@ OWNER_API_KEY=randomgenkey
 Details:
 - `PORT=3000` should be left as **3000** unless the port is being used by another process.
 - `BASE_URL=https://cdn.example.com` should be set as your URL. (exm: https://cdn.yourdomain.com)
-- `OWNER_API_KEY=randomgenkey` should be set to a random generated set of characters. This is how the CDN will know to accept the request.
+- `OWNER_API_KEY=randomgenkey` should be set to a random generated set of characters. This is the key you will give the CDN when uploading.
 
 ## Step 3:
 Start the CDN.
