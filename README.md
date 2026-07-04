@@ -45,7 +45,7 @@ https://cdn.example.com
 Replace that URL in the file with the url you put in `BASE_URL`.
 
 ## Step 5:
-Start serve npx (extension of npm).
+Start serving `example-upload.html` (extension of npm).
 ```bash
 npx serve
 ```
