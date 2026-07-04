@@ -2,7 +2,9 @@
 *a muizi project.*
 
 ## Warning(s):
-This project is meant to be tunneled through cloudflare. The `BASE_URL` is required, please set it as your URL for the CDN to work properly.
+This project is meant to be tunneled through cloudflare. 
+
+The `BASE_URL` is required, please set it as your URL for the CDN to work properly.
 
 It is recommended to run administrator in the terminal you are starting the CDN in.
 
