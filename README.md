@@ -13,7 +13,8 @@ What is a CDN? A CDN stands for **Content Delivery Network**.
 
 A CDN provides a way to upload and share images, videos or whatever you want.
 
-This project provides you with a fully functional cdn.
+This project provides you with a fully functional CDN.
+
 The steps to get **your** CDN up and running is below.
 
 ## Step 1:
