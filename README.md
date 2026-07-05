@@ -52,13 +52,15 @@ https://cdn.example.com
 Replace that URL in the file with the url you put in `BASE_URL`.
 
 ## Step 5:
-Start serving `example-upload.html` (extension of npm).
+To start serving `example-upload.html`, use,
 ```bash
 npx serve
 ```
 Once npx is served, open the localhost and find the `example-upload.html` file. 
+
 Click on it to open it, Put in your api key, choose a file to upload, then click upload. 
-This will confirm if **your** cdn is working correctly.
+
+This will confirm if **your** CDN is working correctly.
 
 ## Notes:
 - The CDN should automatically create the required folders, if the CDN fails to create them, run these commands:
