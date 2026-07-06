@@ -44,7 +44,8 @@ npm start
 ```
 
 ## Step 4:
-Modify `example-upload.html`
+Modify `example-upload.html`.
+
 In any text editor, open up the file. Open the find tool and paste in:
 ```bash
 https://cdn.example.com
