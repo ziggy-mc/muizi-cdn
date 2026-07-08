@@ -191,7 +191,9 @@ app.post("/upload", (req, res) => {
 
         writeStream.on("finish", async () => {
             try {
-                const finalExt = ext === ".mov" ? ".mp4" : ext;
+                const finalExt = [".mov", ".mkv"].includes(ext.toLowerCase())
+  ? ".mp4"
+  : ext;
                 const finalPath = path.join(UPLOAD_DIR, baseId + finalExt);
 
                 if (ext === ".mov") {
