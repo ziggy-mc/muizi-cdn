@@ -309,6 +309,7 @@ app.get("/:file", async (req, res) => {
     };
 
     res.setHeader("Content-Type", mime[ext] || "application/octet-stream");
+    res.setHeader("Content-Disposition", "inline");
     res.setHeader("Cache-Control", "public,max-age=31536000,immutable");
     res.setHeader("Accept-Ranges", "bytes");
 
