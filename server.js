@@ -59,7 +59,7 @@ app.use((req, res, next) => {
 app.use(helmet({ crossOriginResourcePolicy: false }));
 
 app.use((req, res, next) => {
-    if (/\.(mp4|mov|webm)$/i.test(req.path)) return next();
+    if (/\.(mp4|mov|mkv|webm|mp3)$/i.test(req.path)) return next();
     compress(req, res, next);
 });
 
@@ -138,6 +138,32 @@ function convertMovToMp4(input, output) {
     );
 }
 
+function convertAudioToMp3(input, output) {
+    return enqueueFFmpeg(() =>
+        new Promise((resolve, reject) => {
+            const ffmpeg = spawn(ffmpegPath, [
+                "-y",
+                "-i", input,
+                "-vn",
+                "-c:a", "libmp3lame",
+                "-b:a", "192k",
+                output
+            ]);
+
+            let err = "";
+
+            ffmpeg.stderr.on("data", d => {
+                err += d.toString();
+            });
+
+            ffmpeg.on("close", code => {
+                if (code !== 0) return reject(err);
+                resolve();
+            });
+        })
+    );
+}
+
 app.post("/upload", (req, res) => {
     const key = getKeyData(getToken(req));
     if (!key) return res.status(401).json({ error: "unauthorized" });
@@ -196,7 +222,7 @@ app.post("/upload", (req, res) => {
   : ext;
                 const finalPath = path.join(UPLOAD_DIR, baseId + finalExt);
 
-                if (ext === ".mov") {
+                if ([".mov", ".mkv"].includes(ext)) {
                     await convertMovToMp4(tempPath, finalPath);
                     await fsp.unlink(tempPath);
                 } else {
@@ -259,7 +285,8 @@ app.get("/:file", async (req, res) => {
         ".gif": "image/gif",
         ".webp": "image/webp",
         ".mp4": "video/mp4",
-        ".webm": "video/webm"
+        ".webm": "video/webm",
+        ".mp3": "audio/mpeg"
     };
 
     res.setHeader("Content-Type", mime[ext] || "application/octet-stream");
