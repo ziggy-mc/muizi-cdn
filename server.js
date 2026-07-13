@@ -104,7 +104,7 @@ function enqueueFFmpeg(job) {
     });
 }
 
-function convertMovToMp4(input, output) {
+function convertVideoToMp4(input, output) {
     return enqueueFFmpeg(() =>
         new Promise((resolve, reject) => {
             const tempOut = output + ".tmp.mp4";
@@ -217,17 +217,36 @@ app.post("/upload", (req, res) => {
 
         writeStream.on("finish", async () => {
             try {
-                const finalExt = [".mov", ".mkv"].includes(ext.toLowerCase())
-  ? ".mp4"
-  : ext;
-                const finalPath = path.join(UPLOAD_DIR, baseId + finalExt);
+                const audioFormats = [
+                    ".wav",
+                    ".aac",
+                    ".m4a",
+                    ".flac",
+                    ".ogg",
+                    ".wma"
+            ];
 
-                if ([".mov", ".mkv"].includes(ext)) {
-                    await convertMovToMp4(tempPath, finalPath);
-                    await fsp.unlink(tempPath);
-                } else {
-                    await fsp.rename(tempPath, finalPath);
-                }
+            let finalExt = ext;
+
+            if ([".mov", ".mkv"].includes(ext)) {
+                finalExt = ".mp4";
+            }
+
+            if (audioFormats.includes(ext)) {
+                finalExt = ".mp3";
+            }
+
+            const finalPath = path.join(UPLOAD_DIR, baseId + finalExt);
+
+            if ([".mov", ".mkv"].includes(ext)) {
+                await convertVideoToMp4(tempPath, finalPath);
+                await fsp.unlink(tempPath);
+            } else if (audioFormats.includes(ext)) {
+                await convertAudioToMp3(tempPath, finalPath);
+                await fsp.unlink(tempPath);
+            } else {
+                await fsp.rename(tempPath, finalPath);
+            }
 
                 db.prepare(`
                     INSERT INTO files
