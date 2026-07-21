@@ -104,39 +104,72 @@ function enqueueFFmpeg(job) {
     });
 }
 
-function convertVideoToMp4(input, output) {
-    return enqueueFFmpeg(() =>
-        new Promise((resolve, reject) => {
-            const tempOut = output + ".tmp.mp4";
+function convertVideoToMp4(input, output) {  
+    return enqueueFFmpeg(() =>  
+        new Promise((resolve, reject) => {  
+            const tempOut = output + ".tmp.mp4";  
+  
+            // First, try a lossless stream copy  
+            const copy = spawn(ffmpegPath, [  
+                "-y",  
+                "-i", input,  
+                "-c", "copy",  
+                "-movflags", "+faststart",  
+                tempOut  
+            ]);  
+  
+            let copyErr = "";  
+  
+            copy.stderr.on("data", d => {  
+                copyErr += d.toString();  
+            });  
+  
+            copy.on("close", code => {  
+                if (code === 0) {  
+                    // Success! No re-encoding needed.  
+                    return fsp.rename(tempOut, output)  
+                        .then(resolve)  
+                        .catch(reject);  
+                }  
+  
+                console.log("[FFMPEG] Stream copy failed, falling back to re-encode...");  
+  
+                // Stream copy failed, so re-encode  
+                const encode = spawn(ffmpegPath, [  
+                    "-y",  
+                    "-i", input,  
+                    "-c:v", "libx264",  
+                    "-preset", "medium",  
+                    "-crf", "20",  
+                    "-c:a", "aac",  
+                    "-b:a", "192k",  
+                    "-movflags", "+faststart",  
+                    tempOut  
+                ]);  
+  
+                let encodeErr = "";  
+  
+                encode.stderr.on("data", d => {  
+                    encodeErr += d.toString();  
+                });  
+  
+                encode.on("close", async code => {  
+                    if (code !== 0) {  
+                        return reject(encodeErr || copyErr);  
+                    }  
+  
+                    try {  
+                        await fsp.rename(tempOut, output);  
+                        resolve();  
+                    } catch (e) {  
+                        reject(e);  
+                    }  
+                });  
+            });  
+        })  
+    );  
+}  
 
-            const ffmpeg = spawn(ffmpegPath, [
-                "-y",
-                "-i", input,
-                "-c:v", "libx264",
-                "-preset", "ultrafast",
-                "-crf", "30",
-                "-threads", "1",
-                "-c:a", "aac",
-                "-b:a", "96k",
-                "-movflags", "+faststart",
-                tempOut
-            ]);
-
-            let err = "";
-
-            ffmpeg.stderr.on("data", d => {
-                err += d.toString();
-            });
-
-            ffmpeg.on("close", async code => {
-                if (code !== 0) return reject(err);
-
-                await fsp.rename(tempOut, output);
-                resolve();
-            });
-        })
-    );
-}
 
 function convertAudioToMp3(input, output) {
     return enqueueFFmpeg(() =>
@@ -278,6 +311,47 @@ app.post("/upload", (req, res) => {
     busboy.on("error", fail);
 
     req.pipe(busboy);
+});
+
+app.delete("/delete/:file", async (req, res) => {
+    const key = getKeyData(getToken(req));
+    if (!key) {
+        return res.status(401).json({ error: "unauthorized" });
+    }
+
+    const filename = req.params.file;
+
+    const resolved = path.resolve(UPLOAD_DIR, filename);
+
+    // Prevent path traversal
+    if (!resolved.startsWith(path.resolve(UPLOAD_DIR))) {
+        return res.sendStatus(403);
+    }
+
+    try {
+        await fsp.access(resolved);
+    } catch {
+        return res.status(404).json({ error: "file not found" });
+    }
+
+    try {
+        await fsp.unlink(resolved);
+
+        // Remove from database if present
+        db.prepare("DELETE FROM files WHERE id = ?")
+            .run(path.parse(filename).name);
+
+        res.json({
+            success: true,
+            message: `File ${filename} deleted.`
+        });
+    } catch (err) {
+        console.error("[DELETE ERROR]", err);
+
+        res.status(500).json({
+            error: "delete failed"
+        });
+    }
 });
 
 app.get("/:file", async (req, res) => {
