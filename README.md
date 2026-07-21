@@ -50,7 +50,7 @@ In any text editor, open up the file. Open the find tool and paste in:
 ```bash
 https://cdn.example.com
 ```
-Replace that URL in the file with the url you put in `BASE_URL`.
+Replace those 2 URLs in the file with the url you put in `BASE_URL`.
 
 ## Step 5:
 To start serving `example-upload.html`, use,
