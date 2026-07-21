@@ -15,12 +15,26 @@
 
 <button onclick="upload()">Upload</button>
 
+<hr>
+
+<h2>Delete File</h2>
+
+<input
+    id="deleteFile"
+    placeholder="example: abc123.mp4"
+    style="width:400px"
+>
+<br><br>
+
+<button onclick="deleteFile()">Delete</button>
+
 <br><br>
 
 <div id="status"></div>
 <progress id="progress" max="100" value="0" style="width:500px"></progress>
 
 <script>
+
 async function upload() {
 
     const file = document.getElementById("file").files[0];
@@ -37,11 +51,10 @@ async function upload() {
 
     xhr.setRequestHeader("Authorization", "Bearer " + apiKey);
 
-    xhr.timeout = 1000 * 60 * 60; // 1 hour safety
+    xhr.timeout = 1000 * 60 * 60;
 
     const startTime = Date.now();
 
-    // ---------------- PROGRESS ----------------
     xhr.upload.onprogress = (e) => {
         if (!e.lengthComputable) return;
 
@@ -51,17 +64,22 @@ async function upload() {
         const elapsed = (Date.now() - startTime) / 1000;
         const speed = e.loaded / elapsed / 1024 / 1024;
 
-        const remaining = (e.total - e.loaded) / (speed * 1024 * 1024);
+        const remaining =
+            (e.total - e.loaded) /
+            (speed * 1024 * 1024);
 
         document.getElementById("status").innerHTML = `
             ${percent}%<br>
-            ${(e.loaded/1024/1024).toFixed(2)} MB / ${(e.total/1024/1024).toFixed(2)} MB<br>
+            ${(e.loaded/1024/1024).toFixed(2)} MB /
+            ${(e.total/1024/1024).toFixed(2)} MB<br>
             ${speed.toFixed(2)} MB/s<br>
-            ETA: ${isFinite(remaining) ? remaining.toFixed(1) : "..."} sec
+            ETA:
+            ${isFinite(remaining)
+                ? remaining.toFixed(1)
+                : "..."} sec
         `;
     };
 
-    // ---------------- SUCCESS ----------------
     xhr.onload = () => {
         if (xhr.status !== 200) {
             document.getElementById("status").innerHTML =
@@ -74,11 +92,12 @@ async function upload() {
         document.getElementById("status").innerHTML += `
             <hr>
             ✅ Upload complete!<br>
-            <a href="${data.url}" target="_blank">${data.url}</a>
+            <a href="${data.url}" target="_blank">
+                ${data.url}
+            </a>
         `;
     };
 
-    // ---------------- ERRORS ----------------
     xhr.onerror = () => {
         document.getElementById("status").innerHTML =
             "❌ Network error (connection dropped)";
@@ -91,6 +110,58 @@ async function upload() {
 
     xhr.send(form);
 }
+
+async function deleteFile() {
+
+    const apiKey =
+        document.getElementById("apikey").value;
+
+    const fileName =
+        document.getElementById("deleteFile")
+        .value
+        .trim();
+
+    if (!fileName) {
+        return alert("Enter a filename.");
+    }
+
+    document.getElementById("status").innerHTML =
+        "Deleting...";
+
+    try {
+
+        const response = await fetch(
+            `https://cdn.example.com/delete/${encodeURIComponent(fileName)}`,
+            {
+                method: "DELETE",
+                headers: {
+                    Authorization:
+                        "Bearer " + apiKey
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            document.getElementById("status").innerHTML =
+                "❌ Delete failed: " +
+                (data.error || "Unknown error");
+            return;
+        }
+
+        document.getElementById("status").innerHTML = `
+            ✅ ${data.message}
+        `;
+
+    } catch (err) {
+
+        document.getElementById("status").innerHTML =
+            "❌ Network error while deleting";
+
+    }
+}
+
 </script>
 
 </body>
