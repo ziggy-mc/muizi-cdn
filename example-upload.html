@@ -1,283 +1,1451 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>CDN Upload</title>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>CDN Control Panel</title>
+
+    <style>
+        :root {
+            color-scheme: dark;
+
+            --bg: #08090c;
+            --panel: #101218;
+            --panel-2: #0c0e13;
+            --border: #232733;
+            --border-hover: #343a49;
+            --text: #f4f6fb;
+            --muted: #9097a8;
+
+            --accent: #6d7cff;
+            --accent-hover: #7f8cff;
+
+            --danger: #ff5f6d;
+            --danger-bg: rgba(255, 95, 109, 0.1);
+
+            --success: #48d597;
+            --success-bg: rgba(72, 213, 151, 0.08);
+
+            --input: #0b0d12;
+
+            --shadow:
+                0 18px 50px rgba(0, 0, 0, 0.35);
+
+            --radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            min-height: 100%;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+
+            color: var(--text);
+
+            background:
+                radial-gradient(
+                    circle at top left,
+                    rgba(109, 124, 255, 0.13),
+                    transparent 34rem
+                ),
+                radial-gradient(
+                    circle at top right,
+                    rgba(116, 82, 255, 0.08),
+                    transparent 30rem
+                ),
+                var(--bg);
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        a {
+            color: #9ba6ff;
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        code {
+            color: #c5cbff;
+        }
+
+        .page {
+            width: min(1100px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 42px 0 60px;
+        }
+
+        .header {
+            margin-bottom: 28px;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+
+            padding: 7px 11px;
+            margin-bottom: 14px;
+
+            border: 1px solid var(--border);
+            border-radius: 999px;
+
+            color: var(--muted);
+            background: rgba(255, 255, 255, 0.025);
+
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .eyebrow-dot {
+            width: 7px;
+            height: 7px;
+
+            border-radius: 50%;
+
+            background: var(--accent);
+
+            box-shadow:
+                0 0 14px rgba(109, 124, 255, 0.8);
+        }
+
+        h1 {
+            margin: 0;
+
+            font-size: clamp(30px, 5vw, 46px);
+            line-height: 1.05;
+            letter-spacing: -0.04em;
+        }
+
+        .subtitle {
+            max-width: 720px;
+            margin: 12px 0 0;
+
+            color: var(--muted);
+
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+        }
+
+        .card {
+            overflow: hidden;
+
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+
+            background:
+                linear-gradient(
+                    180deg,
+                    rgba(255, 255, 255, 0.025),
+                    transparent
+                ),
+                var(--panel);
+
+            box-shadow: var(--shadow);
+        }
+
+        .card-header {
+            padding: 21px 22px 17px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-title {
+            margin: 0;
+
+            font-size: 18px;
+            letter-spacing: -0.015em;
+        }
+
+        .card-description {
+            margin: 6px 0 0;
+
+            color: var(--muted);
+
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .card-body {
+            padding: 22px;
+        }
+
+        .field {
+            margin-bottom: 17px;
+        }
+
+        .field:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+
+            margin-bottom: 7px;
+
+            color: #dce0ea;
+
+            font-size: 13px;
+            font-weight: 650;
+        }
+
+        .hint {
+            margin-top: 7px;
+
+            color: var(--muted);
+
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .two-column {
+            display: grid;
+
+            grid-template-columns:
+                minmax(0, 1fr)
+                minmax(0, 1fr);
+
+            gap: 18px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="password"],
+        input[type="url"],
+        input[type="file"] {
+            width: 100%;
+            min-height: 44px;
+
+            padding: 0 13px;
+
+            border: 1px solid var(--border);
+            border-radius: 11px;
+
+            outline: none;
+
+            color: var(--text);
+            background: var(--input);
+
+            transition:
+                border-color 0.15s ease,
+                box-shadow 0.15s ease,
+                background 0.15s ease;
+        }
+
+        input[type="file"] {
+            padding: 9px 11px;
+        }
+
+        input::placeholder {
+            color: #606777;
+        }
+
+        input:hover {
+            border-color: var(--border-hover);
+        }
+
+        input:focus {
+            border-color: var(--accent);
+
+            background: #0d1017;
+
+            box-shadow:
+                0 0 0 3px rgba(109, 124, 255, 0.12),
+                0 0 28px rgba(109, 124, 255, 0.06);
+        }
+
+        .password-wrap {
+            position: relative;
+        }
+
+        .password-wrap input {
+            padding-right: 88px;
+        }
+
+        .toggle-password {
+            position: absolute;
+
+            top: 50%;
+            right: 6px;
+
+            transform: translateY(-50%);
+
+            min-height: 34px;
+
+            padding: 0 10px;
+
+            border: 0;
+            border-radius: 8px;
+
+            color: var(--muted);
+            background: transparent;
+        }
+
+        .toggle-password:hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        button {
+            min-height: 42px;
+
+            padding: 0 15px;
+
+            border: 1px solid var(--border);
+            border-radius: 10px;
+
+            color: var(--text);
+            background: #171a23;
+
+            font-size: 13px;
+            font-weight: 700;
+
+            transition:
+                transform 0.12s ease,
+                background 0.12s ease,
+                border-color 0.12s ease;
+        }
+
+        button:hover {
+            background: #1d212c;
+            border-color: var(--border-hover);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        button.primary {
+            border-color: transparent;
+
+            background: var(--accent);
+
+            box-shadow:
+                0 8px 22px rgba(109, 124, 255, 0.2);
+        }
+
+        button.primary:hover {
+            background: var(--accent-hover);
+        }
+
+        button.danger {
+            border-color: rgba(255, 95, 109, 0.22);
+
+            background: var(--danger-bg);
+
+            color: #ff9aa3;
+        }
+
+        button.danger:hover {
+            background: rgba(255, 95, 109, 0.16);
+            border-color: rgba(255, 95, 109, 0.32);
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+
+            margin-top: 18px;
+        }
+
+        .progress-wrap {
+            margin-top: 18px;
+        }
+
+        progress {
+            width: 100%;
+            height: 9px;
+
+            overflow: hidden;
+
+            border: 0;
+            border-radius: 999px;
+
+            background: #080a0f;
+        }
+
+        progress::-webkit-progress-bar {
+            background: #080a0f;
+            border-radius: 999px;
+        }
+
+        progress::-webkit-progress-value {
+            background: var(--accent);
+            border-radius: 999px;
+        }
+
+        progress::-moz-progress-bar {
+            background: var(--accent);
+            border-radius: 999px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+
+            margin-top: 8px;
+
+            color: var(--muted);
+
+            font-size: 12px;
+        }
+
+        .status {
+            min-height: 20px;
+
+            margin-top: 17px;
+            padding: 13px 14px;
+
+            border: 1px solid var(--border);
+            border-radius: 11px;
+
+            color: var(--muted);
+            background: rgba(0, 0, 0, 0.14);
+
+            font-size: 13px;
+            line-height: 1.6;
+
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        .status:empty {
+            display: none;
+        }
+
+        .status.success {
+            border-color: rgba(72, 213, 151, 0.22);
+            background: var(--success-bg);
+            color: #8aebc0;
+        }
+
+        .status.error {
+            border-color: rgba(255, 95, 109, 0.22);
+            background: rgba(255, 95, 109, 0.07);
+            color: #ff9da6;
+        }
+
+        .status.info {
+            border-color: rgba(109, 124, 255, 0.22);
+            background: rgba(109, 124, 255, 0.07);
+            color: #afb8ff;
+        }
+
+        .result {
+            display: grid;
+            gap: 12px;
+        }
+
+        .result-row {
+            padding: 11px 12px;
+
+            border: 1px solid rgba(255, 255, 255, 0.055);
+            border-radius: 10px;
+
+            background: rgba(0, 0, 0, 0.14);
+        }
+
+        .result-label {
+            margin-bottom: 4px;
+
+            color: var(--muted);
+
+            font-size: 11px;
+            font-weight: 700;
+
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .result-value {
+            color: var(--text);
+            overflow-wrap: anywhere;
+        }
+
+        .url-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 9px;
+        }
+
+        .small-button {
+            min-height: 35px;
+            padding: 0 11px;
+
+            font-size: 12px;
+        }
+
+        .health-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+
+            gap: 10px;
+
+            margin-top: 17px;
+        }
+
+        .health-item {
+            min-height: 90px;
+
+            padding: 14px;
+
+            border: 1px solid var(--border);
+            border-radius: 12px;
+
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .health-label {
+            margin-bottom: 7px;
+
+            color: var(--muted);
+
+            font-size: 11px;
+            font-weight: 750;
+
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+        }
+
+        .health-value {
+            color: var(--text);
+
+            font-size: 14px;
+            font-weight: 650;
+
+            line-height: 1.5;
+        }
+
+        .footer {
+            margin-top: 22px;
+
+            color: #5e6473;
+
+            text-align: center;
+
+            font-size: 12px;
+        }
+
+        @media (max-width: 760px) {
+            .page {
+                width: min(100% - 20px, 1100px);
+                padding-top: 24px;
+            }
+
+            .two-column,
+            .health-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card-body,
+            .card-header {
+                padding: 18px;
+            }
+        }
+    </style>
 </head>
+
 <body>
+<div class="page">
 
-<h2>CDN Upload Test</h2>
+    <header class="header">
+        <div class="eyebrow">
+            <span class="eyebrow-dot"></span>
+            CDN Control Panel
+        </div>
 
-<input id="apikey" placeholder="API Key" style="width:400px">
-<br><br>
+        <h1>Manage your files.</h1>
 
-<input type="file" id="file">
-<br><br>
+        <p class="subtitle">
+            Upload, delete, move, and manage retention directly from your CDN.
+        </p>
+    </header>
 
-<label>Retention Days:</label>
-<br>
+    <main class="layout">
 
-<input
-    id="retentionDays"
-    type="number"
-    min="1"
-    placeholder="Leave empty for global setting"
-    style="width:300px"
->
+        <!-- Authentication -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="card-title">Authentication</h2>
 
-<br>
-<small>
-    Leave empty to use the CDN's global retention setting.
-</small>
+                <p class="card-description">
+                    Enter the API key used to authenticate requests to your CDN.
+                </p>
+            </div>
 
-<br><br>
+            <div class="card-body">
+                <div class="field">
+                    <label for="apikey">
+                        API Key
+                    </label>
 
-<button onclick="upload()">Upload</button>
+                    <div class="password-wrap">
+                        <input
+                            id="apikey"
+                            type="password"
+                            placeholder="API key"
+                            autocomplete="off"
+                        >
 
-<hr>
+                        <button
+                            type="button"
+                            class="toggle-password"
+                            onclick="toggleApiKey()"
+                        >
+                            Show
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-<h2>Delete File</h2>
+        <!-- Upload -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="card-title">Upload File</h2>
 
-<input
-    id="deleteFile"
-    placeholder="example: abc123.mp4"
-    style="width:400px"
->
+                <p class="card-description">
+                    Upload a file with an optional directory and retention period.
+                </p>
+            </div>
 
-<br><br>
+            <div class="card-body">
 
-<button onclick="deleteFile()">Delete</button>
+                <div class="field">
+                    <label for="file">
+                        File
+                    </label>
 
-<hr>
+                    <input
+                        id="file"
+                        type="file"
+                    >
+                </div>
 
-<h2>Change File Retention</h2>
+                <div class="two-column">
 
-<input
-    id="retentionFile"
-    placeholder="example: abc123.mp4"
-    style="width:400px"
->
+                    <div class="field">
+                        <label for="uploadPath">
+                            Upload Path
+                        </label>
 
-<br><br>
+                        <input
+                            id="uploadPath"
+                            type="text"
+                            placeholder="images/avatars"
+                            autocomplete="off"
+                        >
 
-<label>Retention Days:</label>
-<br>
+                        <div class="hint">
+                            Optional. Leave empty to use the default path.
+                        </div>
+                    </div>
 
-<input
-    id="existingRetentionDays"
-    type="number"
-    min="1"
-    placeholder="Leave empty for unlimited"
-    style="width:300px"
->
+                    <div class="field">
+                        <label for="retentionDays">
+                            Retention Days
+                        </label>
 
-<br>
-<small>
-    Enter a number to set expiration.
-    Leave empty to make the file permanent.
-</small>
+                        <input
+                            id="retentionDays"
+                            type="number"
+                            min="1"
+                            step="1"
+                            placeholder="Use global setting"
+                            inputmode="numeric"
+                        >
 
-<br><br>
+                        <div class="hint">
+                            Optional. Leave empty to use the CDN global setting.
+                        </div>
+                    </div>
 
-<button onclick="changeRetention()">
-    Update Retention
-</button>
+                </div>
 
-<hr>
+                <div class="actions">
+                    <button
+                        type="button"
+                        class="primary"
+                        id="uploadButton"
+                        onclick="uploadFile()"
+                    >
+                        Upload File
+                    </button>
+                </div>
 
-<h2>CDN Health</h2>
+                <div class="progress-wrap">
+                    <progress
+                        id="progress"
+                        max="100"
+                        value="0"
+                    ></progress>
 
-<button onclick="checkHealth()">
-    Check Health
-</button>
+                    <div class="progress-label">
+                        <span id="progressPercent">
+                            0%
+                        </span>
 
-<button onclick="checkReady()">
-    Check Readiness
-</button>
+                        <span id="progressDetails">
+                            Waiting for upload
+                        </span>
+                    </div>
+                </div>
 
-<br><br>
+                <div
+                    id="uploadStatus"
+                    class="status"
+                ></div>
+            </div>
+        </section>
 
-<div id="healthStatus"></div>
+        <!-- File operations -->
+        <div class="two-column">
 
-<br>
+            <!-- Delete -->
+            <section class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        Delete File
+                    </h2>
 
-<div id="status"></div>
+                    <p class="card-description">
+                        Permanently remove a file from the CDN.
+                    </p>
+                </div>
 
-<progress
-    id="progress"
-    max="100"
-    value="0"
-    style="width:500px"
-></progress>
+                <div class="card-body">
+                    <div class="field">
+                        <label for="deleteFileInput">
+                            File Path
+                        </label>
+
+                        <input
+                            id="deleteFileInput"
+                            type="text"
+                            placeholder="abc123.mp4"
+                            autocomplete="off"
+                        >
+
+                        <div class="hint">
+                            Include the folder path when needed.
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <button
+                            type="button"
+                            class="danger"
+                            onclick="deleteFileRequest()"
+                        >
+                            Delete File
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Retention -->
+            <section class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        Change Retention
+                    </h2>
+
+                    <p class="card-description">
+                        Change how long an existing file should remain available.
+                    </p>
+                </div>
+
+                <div class="card-body">
+
+                    <div class="field">
+                        <label for="retentionFile">
+                            File Path
+                        </label>
+
+                        <input
+                            id="retentionFile"
+                            type="text"
+                            placeholder="abc123.mp4"
+                            autocomplete="off"
+                        >
+                    </div>
+
+                    <div class="field">
+                        <label for="existingRetentionDays">
+                            Retention Days
+                        </label>
+
+                        <input
+                            id="existingRetentionDays"
+                            type="number"
+                            min="1"
+                            step="1"
+                            placeholder="Leave empty for unlimited"
+                            inputmode="numeric"
+                        >
+
+                        <div class="hint">
+                            Enter a number to expire the file.
+                            Leave empty to make it permanent.
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <button
+                            type="button"
+                            class="primary"
+                            onclick="changeRetention()"
+                        >
+                            Update Retention
+                        </button>
+                    </div>
+
+                </div>
+            </section>
+        </div>
+
+        <!-- Move -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    Move File
+                </h2>
+
+                <p class="card-description">
+                    Move an existing file into another CDN directory.
+                </p>
+            </div>
+
+            <div class="card-body">
+
+                <div class="two-column">
+
+                    <div class="field">
+                        <label for="moveFileInput">
+                            Current File Path
+                        </label>
+
+                        <input
+                            id="moveFileInput"
+                            type="text"
+                            placeholder="abc123.mp4"
+                            autocomplete="off"
+                        >
+                    </div>
+
+                    <div class="field">
+                        <label for="movePath">
+                            New Path
+                        </label>
+
+                        <input
+                            id="movePath"
+                            type="text"
+                            placeholder="images/avatars"
+                            autocomplete="off"
+                        >
+                    </div>
+
+                </div>
+
+                <div class="actions">
+                    <button
+                        type="button"
+                        class="primary"
+                        onclick="moveFileRequest()"
+                    >
+                        Move File
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Health -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    CDN Health
+                </h2>
+
+                <p class="card-description">
+                    Check whether the CDN is online and ready.
+                </p>
+            </div>
+
+            <div class="card-body">
+
+                <div class="actions">
+                    <button
+                        type="button"
+                        onclick="checkHealth()"
+                    >
+                        Check Health
+                    </button>
+
+                    <button
+                        type="button"
+                        onclick="checkReady()"
+                    >
+                        Check Readiness
+                    </button>
+                </div>
+
+                <div
+                    id="healthStatus"
+                    class="status"
+                ></div>
+
+                <div class="health-grid">
+
+                    <div class="health-item">
+                        <div class="health-label">
+                            Status
+                        </div>
+
+                        <div
+                            id="healthState"
+                            class="health-value"
+                        >
+                            Not checked
+                        </div>
+                    </div>
+
+                    <div class="health-item">
+                        <div class="health-label">
+                            Uptime
+                        </div>
+
+                        <div
+                            id="healthUptime"
+                            class="health-value"
+                        >
+                            -
+                        </div>
+                    </div>
+
+                    <div class="health-item">
+                        <div class="health-label">
+                            Database
+                        </div>
+
+                        <div
+                            id="healthDatabase"
+                            class="health-value"
+                        >
+                            -
+                        </div>
+                    </div>
+
+                    <div class="health-item">
+                        <div class="health-label">
+                            Storage
+                        </div>
+
+                        <div
+                            id="healthStorage"
+                            class="health-value"
+                        >
+                            -
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <div class="footer">
+        CDN Control Panel
+    </div>
+
+</div>
 
 <script>
+"use strict";
 
-const CDN_URL = "https://cdn.example.com";
+
+const CDN_URL = "https://assets.example.com";
 
 
-async function upload() {
-
-    const file =
-        document.getElementById("file")
-        .files[0];
-
-    const apiKey =
-        document.getElementById("apikey")
+function getApiKey() {
+    return document
+        .getElementById("apikey")
         .value
         .trim();
+}
 
-    if (!file) {
-        return alert("Select a file.");
-    }
+
+function requireApiKey() {
+    const apiKey = getApiKey();
 
     if (!apiKey) {
-        return alert("Enter an API key.");
+        alert("Enter an API key first.");
+        return null;
     }
 
-    const retentionInput =
-        document.getElementById(
-            "retentionDays"
-        )
+    return apiKey;
+}
+
+
+function encodePath(filePath) {
+    return filePath
+        .split("/")
+        .filter(Boolean)
+        .map(segment => encodeURIComponent(segment))
+        .join("/");
+}
+
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+function setStatus(elementId, message, type = "") {
+    const element = document.getElementById(elementId);
+
+    if (!element) {
+        return;
+    }
+
+    element.className = type
+        ? `status ${type}`
+        : "status";
+
+    element.innerHTML = message || "";
+}
+
+
+async function readJson(response) {
+    const text = await response.text();
+
+    if (!text) {
+        return {};
+    }
+
+    try {
+        return JSON.parse(text);
+    } catch {
+        return {
+            error: text
+        };
+    }
+}
+
+
+function toggleApiKey() {
+    const input = document.getElementById("apikey");
+    const button = document.querySelector(".toggle-password");
+
+    if (input.type === "password") {
+        input.type = "text";
+        button.textContent = "Hide";
+    } else {
+        input.type = "password";
+        button.textContent = "Show";
+    }
+}
+
+
+function resetProgress() {
+    document.getElementById("progress").value = 0;
+
+    document.getElementById("progressPercent")
+        .textContent = "0%";
+
+    document.getElementById("progressDetails")
+        .textContent = "Starting upload...";
+}
+
+
+function setUploadButtonBusy(busy) {
+    const button = document.getElementById("uploadButton");
+
+    button.disabled = busy;
+
+    button.textContent = busy
+        ? "Uploading..."
+        : "Upload File";
+}
+
+
+async function uploadFile() {
+    const fileInput = document.getElementById("file");
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert("Select a file first.");
+        return;
+    }
+
+    const apiKey = requireApiKey();
+
+    if (!apiKey) {
+        return;
+    }
+
+    const uploadPath = document
+        .getElementById("uploadPath")
         .value
         .trim();
+
+    const retentionInput = document
+        .getElementById("retentionDays")
+        .value
+        .trim();
+
+    let retentionDays = null;
+
+    if (retentionInput !== "") {
+        retentionDays = Number(retentionInput);
+
+        if (
+            !Number.isInteger(retentionDays) ||
+            retentionDays < 1
+        ) {
+            alert("Enter a valid retention period in days.");
+            return;
+        }
+    }
+
+    resetProgress();
+
+    setUploadButtonBusy(true);
+
+    setStatus(
+        "uploadStatus",
+        `Uploading <strong>${escapeHtml(file.name)}</strong>...`,
+        "info"
+    );
 
     const form = new FormData();
 
     form.append("file", file);
 
-    const xhr =
-        new XMLHttpRequest();
+    if (uploadPath !== "") {
+        form.append("path", uploadPath);
+    }
+
+    const xhr = new XMLHttpRequest();
 
     xhr.open(
         "POST",
-        `${CDN_URL}/upload`
+        `${CDN_URL}/upload`,
+        true
     );
 
     xhr.setRequestHeader(
         "Authorization",
-        "Bearer " + apiKey
+        `Bearer ${apiKey}`
     );
 
-    if (retentionInput !== "") {
-
-        const days =
-            Number(retentionInput);
-
-        if (
-            !Number.isInteger(days) ||
-            days < 1
-        ) {
-            return alert(
-                "Enter a valid retention period in days."
-            );
-        }
-
+    if (retentionDays !== null) {
         xhr.setRequestHeader(
             "X-Retention-Days",
-            String(days)
+            String(retentionDays)
         );
     }
 
-    xhr.timeout =
-        1000 * 60 * 60;
+    xhr.timeout = 60 * 60 * 1000;
 
-    const startTime =
-        Date.now();
+    const startTime = Date.now();
 
-    xhr.upload.onprogress = (e) => {
-
-        if (!e.lengthComputable) {
+    xhr.upload.onprogress = event => {
+        if (!event.lengthComputable) {
+            document.getElementById("progressDetails")
+                .textContent = "Uploading...";
             return;
         }
 
-        const percent =
-            Math.round(
-                (e.loaded / e.total) * 100
-            );
+        const percent = Math.round(
+            (event.loaded / event.total) * 100
+        );
 
-        document.getElementById(
-            "progress"
-        ).value = percent;
+        document.getElementById("progress")
+            .value = percent;
 
-        const elapsed =
-            (Date.now() - startTime) / 1000;
+        document.getElementById("progressPercent")
+            .textContent = `${percent}%`;
+
+        const elapsed = Math.max(
+            (Date.now() - startTime) / 1000,
+            0.1
+        );
 
         const speed =
-            e.loaded /
+            event.loaded /
             elapsed /
             1024 /
             1024;
 
         const remaining =
-            (e.total - e.loaded) /
-            (speed * 1024 * 1024);
+            speed > 0
+                ? (event.total - event.loaded) /
+                  (speed * 1024 * 1024)
+                : Infinity;
 
-        document.getElementById(
-            "status"
-        ).innerHTML = `
-            ${percent}%<br>
-            ${(e.loaded / 1024 / 1024).toFixed(2)} MB /
-            ${(e.total / 1024 / 1024).toFixed(2)} MB<br>
-            ${speed.toFixed(2)} MB/s<br>
-            ETA:
-            ${
-                isFinite(remaining)
-                    ? remaining.toFixed(1)
+        document.getElementById("progressDetails")
+            .textContent =
+            `${(
+                event.loaded /
+                1024 /
+                1024
+            ).toFixed(2)} MB / ${(
+                event.total /
+                1024 /
+                1024
+            ).toFixed(2)} MB • ${speed.toFixed(2)} MB/s • ETA ${
+                Number.isFinite(remaining)
+                    ? `${remaining.toFixed(1)}s`
                     : "..."
-            } sec
-        `;
+            }`;
     };
 
 
     xhr.onload = () => {
+        setUploadButtonBusy(false);
 
-        if (xhr.status !== 200) {
+        let data = {};
 
-            document.getElementById(
-                "status"
-            ).innerHTML =
-                "❌ Upload failed: " +
-                xhr.responseText;
+        try {
+            data = JSON.parse(
+                xhr.responseText || "{}"
+            );
+        } catch {
+            setStatus(
+                "uploadStatus",
+                `
+                    <strong>❌ CDN returned invalid JSON.</strong><br><br>
+                    HTTP ${xhr.status}<br><br>
+                    <pre>${escapeHtml(
+                        xhr.responseText || ""
+                    )}</pre>
+                `,
+                "error"
+            );
 
             return;
         }
 
-        const data =
-            JSON.parse(
-                xhr.responseText
+        if (
+            xhr.status < 200 ||
+            xhr.status >= 300
+        ) {
+            setStatus(
+                "uploadStatus",
+                `
+                    <strong>❌ Upload failed.</strong><br>
+                    HTTP ${xhr.status}<br>
+                    ${escapeHtml(
+                        data.error ||
+                        data.message ||
+                        "Unknown error"
+                    )}
+                `,
+                "error"
             );
 
-        document.getElementById(
-            "status"
-        ).innerHTML += `
-            <hr>
-            ✅ Upload complete!<br>
-            File:
-            ${data.filename}<br>
-            <a
-                href="${data.url}"
-                target="_blank"
-            >
-                ${data.url}
-            </a>
-        `;
+            return;
+        }
+
+        const returnedUrl =
+            data.url ||
+            data.returnUrl ||
+            "";
+
+        document.getElementById("progress")
+            .value = 100;
+
+        document.getElementById("progressPercent")
+            .textContent = "100%";
+
+        document.getElementById("progressDetails")
+            .textContent = "Upload complete";
+
+        let urlSection = "";
+
+        if (returnedUrl) {
+            const safeUrl = escapeHtml(returnedUrl);
+
+            urlSection = `
+                <div class="result-row">
+                    <div class="result-label">
+                        Return URL
+                    </div>
+
+                    <div class="result-value">
+                        <a
+                            href="${safeUrl}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            ${safeUrl}
+                        </a>
+
+                        <div class="url-actions">
+                            <button
+                                type="button"
+                                class="small-button"
+                                onclick="copyUrl(${JSON.stringify(
+                                    returnedUrl
+                                )})"
+                            >
+                                Copy URL
+                            </button>
+
+                            <button
+                                type="button"
+                                class="small-button"
+                                onclick="window.open(${JSON.stringify(
+                                    returnedUrl
+                                )}, '_blank', 'noopener,noreferrer')"
+                            >
+                                Open URL
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            urlSection = `
+                <div class="result-row">
+                    <div class="result-label">
+                        Return URL
+                    </div>
+
+                    <div class="result-value">
+                        CDN did not return a URL.
+                    </div>
+                </div>
+            `;
+        }
+
+        setStatus(
+            "uploadStatus",
+            `
+                <div class="result">
+
+                    <div>
+                        <strong>✅ Upload complete</strong>
+                    </div>
+
+                    <div class="result-row">
+                        <div class="result-label">
+                            Filename
+                        </div>
+
+                        <div class="result-value">
+                            ${escapeHtml(
+                                data.filename ||
+                                "Unknown"
+                            )}
+                        </div>
+                    </div>
+
+                    <div class="result-row">
+                        <div class="result-label">
+                            Path
+                        </div>
+
+                        <div class="result-value">
+                            ${escapeHtml(
+                                data.path ||
+                                "Unknown"
+                            )}
+                        </div>
+                    </div>
+
+                    ${urlSection}
+
+                </div>
+            `,
+            "success"
+        );
     };
 
 
     xhr.onerror = () => {
+        setUploadButtonBusy(false);
 
-        document.getElementById(
-            "status"
-        ).innerHTML =
-            "❌ Network error (connection dropped)";
+        setStatus(
+            "uploadStatus",
+            `
+                <strong>❌ Network error.</strong><br>
+                Check the CDN URL, CORS configuration,
+                and connection.
+            `,
+            "error"
+        );
     };
 
 
     xhr.ontimeout = () => {
+        setUploadButtonBusy(false);
 
-        document.getElementById(
-            "status"
-        ).innerHTML =
-            "❌ Upload timed out";
+        setStatus(
+            "uploadStatus",
+            "❌ Upload timed out.",
+            "error"
+        );
+    };
+
+
+    xhr.onabort = () => {
+        setUploadButtonBusy(false);
+
+        setStatus(
+            "uploadStatus",
+            "❌ Upload was cancelled.",
+            "error"
+        );
     };
 
 
@@ -285,337 +1453,488 @@ async function upload() {
 }
 
 
-async function deleteFile() {
+async function copyUrl(url) {
+    try {
+        await navigator.clipboard.writeText(url);
 
-    const apiKey =
-        document.getElementById("apikey")
-        .value
-        .trim();
-
-    const fileName =
-        document.getElementById("deleteFile")
-        .value
-        .trim();
-
-    if (!apiKey) {
-        return alert("Enter an API key.");
-    }
-
-    if (!fileName) {
-        return alert(
-            "Enter a filename."
+        setStatus(
+            "uploadStatus",
+            `
+                <strong>✅ URL copied.</strong><br>
+                ${escapeHtml(url)}
+            `,
+            "success"
+        );
+    } catch {
+        alert(
+            "Could not copy automatically. Select the URL manually."
         );
     }
+}
 
-    document.getElementById(
-        "status"
-    ).innerHTML =
-        "Deleting...";
 
+async function deleteFileRequest() {
+    const apiKey = requireApiKey();
+
+    if (!apiKey) {
+        return;
+    }
+
+    const fileName = document
+        .getElementById("deleteFileInput")
+        .value
+        .trim();
+
+    if (!fileName) {
+        alert("Enter a file path.");
+        return;
+    }
+
+    setStatus(
+        "healthStatus",
+        `Deleting <strong>${escapeHtml(fileName)}</strong>...`,
+        "info"
+    );
 
     try {
+        const response = await fetch(
+            `${CDN_URL}/delete/${encodePath(fileName)}`,
+            {
+                method: "DELETE",
 
-        const response =
-            await fetch(
-                `${CDN_URL}/delete/${encodeURIComponent(fileName)}`,
-                {
-                    method: "DELETE",
-
-                    headers: {
-                        Authorization:
-                            "Bearer " + apiKey
-                    }
+                headers: {
+                    Authorization: `Bearer ${apiKey}`
                 }
-            );
+            }
+        );
 
-
-        const data =
-            await response.json();
-
+        const data = await readJson(response);
 
         if (!response.ok) {
-
-            document.getElementById(
-                "status"
-            ).innerHTML =
-                "❌ Delete failed: " +
-                (
-                    data.error ||
-                    "Unknown error"
-                );
+            setStatus(
+                "healthStatus",
+                `
+                    <strong>❌ Delete failed.</strong><br>
+                    ${escapeHtml(
+                        data.error ||
+                        data.message ||
+                        `HTTP ${response.status}`
+                    )}
+                `,
+                "error"
+            );
 
             return;
         }
 
-
-        document.getElementById(
-            "status"
-        ).innerHTML = `
-            ✅ ${data.message}
-        `;
-
-    } catch (err) {
-
-        document.getElementById(
-            "status"
-        ).innerHTML =
-            "❌ Network error while deleting";
+        setStatus(
+            "healthStatus",
+            `
+                <strong>✅ File deleted.</strong><br>
+                ${escapeHtml(fileName)}
+            `,
+            "success"
+        );
+    } catch {
+        setStatus(
+            "healthStatus",
+            "❌ Network error while deleting the file.",
+            "error"
+        );
     }
 }
 
 
 async function changeRetention() {
-
-    const apiKey =
-        document.getElementById("apikey")
-        .value
-        .trim();
-
-    const fileName =
-        document.getElementById("retentionFile")
-        .value
-        .trim();
-
-    const retentionInput =
-        document.getElementById(
-            "existingRetentionDays"
-        )
-        .value
-        .trim();
-
+    const apiKey = requireApiKey();
 
     if (!apiKey) {
-        return alert("Enter an API key.");
+        return;
     }
+
+    const fileName = document
+        .getElementById("retentionFile")
+        .value
+        .trim();
+
+    const retentionInput = document
+        .getElementById("existingRetentionDays")
+        .value
+        .trim();
 
     if (!fileName) {
-        return alert(
-            "Enter a filename."
-        );
+        alert("Enter a file path.");
+        return;
     }
-
 
     let days = null;
 
-
-    /*
-     * Empty = unlimited.
-     */
-
     if (retentionInput !== "") {
-
-        days =
-            Number(retentionInput);
+        days = Number(retentionInput);
 
         if (
             !Number.isInteger(days) ||
             days < 1
         ) {
-            return alert(
-                "Enter a valid retention period in days."
-            );
+            alert("Enter a valid retention period in days.");
+            return;
         }
     }
 
-
-    document.getElementById(
-        "status"
-    ).innerHTML =
-        "Updating retention...";
-
+    setStatus(
+        "healthStatus",
+        "Updating file retention...",
+        "info"
+    );
 
     try {
+        const response = await fetch(
+            `${CDN_URL}/retention/${encodePath(fileName)}`,
+            {
+                method: "POST",
 
-        const response =
-            await fetch(
-                `${CDN_URL}/retention/${encodeURIComponent(fileName)}`,
-                {
-                    method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${apiKey}`
+                },
 
-                    headers: {
-                        "Content-Type":
-                            "application/json",
+                body: JSON.stringify({
+                    enabled: days !== null,
+                    days
+                })
+            }
+        );
 
-                        Authorization:
-                            "Bearer " + apiKey
-                    },
-
-                    body:
-                        JSON.stringify({
-                            days: days
-                        })
-                }
-            );
-
-
-        const data =
-            await response.json();
-
+        const data = await readJson(response);
 
         if (!response.ok) {
-
-            document.getElementById(
-                "status"
-            ).innerHTML =
-                "❌ Retention update failed: " +
-                (
-                    data.error ||
-                    "Unknown error"
-                );
+            setStatus(
+                "healthStatus",
+                `
+                    <strong>❌ Retention update failed.</strong><br>
+                    ${escapeHtml(
+                        data.error ||
+                        data.message ||
+                        `HTTP ${response.status}`
+                    )}
+                `,
+                "error"
+            );
 
             return;
         }
 
+        setStatus(
+            "healthStatus",
+            `
+                <strong>✅ Retention updated.</strong><br>
+                File: ${escapeHtml(fileName)}<br>
+                Retention:
+                ${
+                    days === null
+                        ? "Unlimited"
+                        : `${days} day${days === 1 ? "" : "s"}`
+                }
+            `,
+            "success"
+        );
+    } catch {
+        setStatus(
+            "healthStatus",
+            "❌ Network error while updating retention.",
+            "error"
+        );
+    }
+}
 
-        document.getElementById(
-            "status"
-        ).innerHTML = `
-            ✅ Retention updated!<br>
-            File: ${fileName}<br>
-            ${
-                days === null
-                    ? "Retention: Unlimited"
-                    : `Retention: ${days} days`
+
+async function moveFileRequest() {
+    const apiKey = requireApiKey();
+
+    if (!apiKey) {
+        return;
+    }
+
+    const fileName = document
+        .getElementById("moveFileInput")
+        .value
+        .trim();
+
+    const newPath = document
+        .getElementById("movePath")
+        .value
+        .trim();
+
+    if (!fileName) {
+        alert("Enter the current file path.");
+        return;
+    }
+
+    if (!newPath) {
+        alert("Enter the new path.");
+        return;
+    }
+
+    setStatus(
+        "healthStatus",
+        "Moving file...",
+        "info"
+    );
+
+    try {
+        const response = await fetch(
+            `${CDN_URL}/path/${encodePath(fileName)}`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${apiKey}`
+                },
+
+                body: JSON.stringify({
+                    path: newPath
+                })
             }
-        `;
+        );
 
-    } catch (err) {
+        const data = await readJson(response);
 
-        document.getElementById(
-            "status"
-        ).innerHTML =
-            "❌ Network error while updating retention";
+        if (!response.ok) {
+            setStatus(
+                "healthStatus",
+                `
+                    <strong>❌ Move failed.</strong><br>
+                    ${escapeHtml(
+                        data.error ||
+                        data.message ||
+                        `HTTP ${response.status}`
+                    )}
+                `,
+                "error"
+            );
+
+            return;
+        }
+
+        const url = data.url || "";
+
+        setStatus(
+            "healthStatus",
+            `
+                <strong>✅ File moved successfully.</strong><br>
+                New path:
+                ${escapeHtml(
+                    data.path ||
+                    newPath
+                )}
+
+                ${
+                    url
+                        ? `
+                            <br><br>
+                            <a
+                                href="${escapeHtml(url)}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                ${escapeHtml(url)}
+                            </a>
+                        `
+                        : ""
+                }
+            `,
+            "success"
+        );
+    } catch {
+        setStatus(
+            "healthStatus",
+            "❌ Network error while moving the file.",
+            "error"
+        );
     }
 }
 
 
 async function checkHealth() {
-
-    const output =
-        document.getElementById(
-            "healthStatus"
-        );
-
-    output.innerHTML =
-        "Checking...";
-
+    setStatus(
+        "healthStatus",
+        "Checking CDN health...",
+        "info"
+    );
 
     try {
+        const response = await fetch(
+            `${CDN_URL}/health`,
+            {
+                cache: "no-store"
+            }
+        );
 
-        const response =
-            await fetch(
-                `${CDN_URL}/health`
-            );
-
-        const data =
-            await response.json();
-
+        const data = await readJson(response);
 
         if (!response.ok) {
+            document.getElementById("healthState")
+                .textContent = "Unhealthy";
 
-            output.innerHTML =
-                "❌ CDN unhealthy";
+            setStatus(
+                "healthStatus",
+                `
+                    <strong>❌ CDN health check failed.</strong><br>
+                    ${escapeHtml(
+                        data.error ||
+                        data.message ||
+                        `HTTP ${response.status}`
+                    )}
+                `,
+                "error"
+            );
 
             return;
         }
 
+        document.getElementById("healthState")
+            .textContent =
+            data.status || "Online";
 
-        output.innerHTML = `
-            ✅ CDN online<br>
-            Status: ${data.status}<br>
-            Uptime: ${formatUptime(data.uptime)}
-        `;
+        document.getElementById("healthUptime")
+            .textContent =
+            typeof data.uptime === "number"
+                ? formatUptime(data.uptime)
+                : "-";
 
+        setStatus(
+            "healthStatus",
+            "<strong>✅ CDN is online.</strong>",
+            "success"
+        );
     } catch {
+        document.getElementById("healthState")
+            .textContent = "Unreachable";
 
-        output.innerHTML =
-            "❌ CDN unreachable";
+        setStatus(
+            "healthStatus",
+            "❌ CDN is unreachable.",
+            "error"
+        );
     }
 }
 
 
 async function checkReady() {
-
-    const output =
-        document.getElementById(
-            "healthStatus"
-        );
-
-    output.innerHTML =
-        "Checking readiness...";
-
+    setStatus(
+        "healthStatus",
+        "Checking CDN readiness...",
+        "info"
+    );
 
     try {
+        const response = await fetch(
+            `${CDN_URL}/health/ready`,
+            {
+                cache: "no-store"
+            }
+        );
 
-        const response =
-            await fetch(
-                `${CDN_URL}/health/ready`
-            );
+        const data = await readJson(response);
 
-        const data =
-            await response.json();
+        document.getElementById("healthDatabase")
+            .textContent =
+            data.database || "Unknown";
 
+        document.getElementById("healthStorage")
+            .textContent =
+            data.storage || "Unknown";
 
         if (!response.ok) {
+            document.getElementById("healthState")
+                .textContent = "Not ready";
 
-            output.innerHTML = `
-                ❌ CDN not ready<br>
-                Database:
-                ${data.database || "unknown"}<br>
-                Storage:
-                ${data.storage || "unknown"}
-            `;
+            setStatus(
+                "healthStatus",
+                "CDN is online but not ready.",
+                "error"
+            );
 
             return;
         }
 
+        document.getElementById("healthState")
+            .textContent = "Ready";
 
-        output.innerHTML = `
-            ✅ CDN ready<br>
-            Database:
-            ${data.database}<br>
-            Storage:
-            ${data.storage}
-        `;
-
+        setStatus(
+            "healthStatus",
+            "<strong>✅ CDN is ready.</strong>",
+            "success"
+        );
     } catch {
+        document.getElementById("healthState")
+            .textContent = "Unreachable";
 
-        output.innerHTML =
-            "❌ CDN unreachable";
+        setStatus(
+            "healthStatus",
+            "❌ CDN is unreachable.",
+            "error"
+        );
     }
 }
 
 
-function formatUptime(seconds) {
+function formatUptime(totalSeconds) {
+    let seconds = Math.max(
+        0,
+        Math.floor(Number(totalSeconds) || 0)
+    );
 
-    seconds =
-        Math.floor(seconds);
-
-    const days =
-        Math.floor(
-            seconds / 86400
-        );
+    const days = Math.floor(
+        seconds / 86400
+    );
 
     seconds %= 86400;
 
-    const hours =
-        Math.floor(
-            seconds / 3600
-        );
+    const hours = Math.floor(
+        seconds / 3600
+    );
 
     seconds %= 3600;
 
-    const minutes =
-        Math.floor(
-            seconds / 60
-        );
+    const minutes = Math.floor(
+        seconds / 60
+    );
 
     seconds %= 60;
-
 
     return `${days}d ${hours}h ${minutes}m ${seconds}s`;
 }
 
+
+document
+    .getElementById("file")
+    .addEventListener(
+        "change",
+        event => {
+            const file =
+                event.target.files[0];
+
+            if (!file) {
+                return;
+            }
+
+            document.getElementById(
+                "progressDetails"
+            ).textContent =
+                `${file.name} selected • ${(
+                    file.size /
+                    1024 /
+                    1024
+                ).toFixed(2)} MB`;
+        }
+    );
+
+
+console.log(
+    "[CDN PANEL] JavaScript loaded successfully."
+);
 </script>
 
 </body>
