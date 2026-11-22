@@ -1,0 +1,28 @@
+{
+  "name": "muizi-cdn",
+  "version": "2.1.1",
+  "private": true,
+  "description": "Self-hosted streaming file CDN with SQLite metadata and scoped access",
+  "license": "GPL-3.0-only",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "check": "node --check server.js && node --check lib/app.js",
+    "test:browser": "node scripts/browser-smoke.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.4.1",
+    "busboy": "^1.6.0",
+    "content-disposition": "^1.0.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "file-type": "^21.0.0",
+    "helmet": "^8.1.0"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.65.0"
+  }
+}

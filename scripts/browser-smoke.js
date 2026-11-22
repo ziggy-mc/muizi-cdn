@@ -1,0 +1,235 @@
+'use strict';
+const { chromium } = require('playwright-core');
+const { createApplication } = require('../lib/app');
+const { loadConfig } = require('../lib/config');
+const fs = require('node:fs');
+const crypto = require('node:crypto');
+const { once } = require('node:events');
+const http = require('node:http');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+const assert = require('node:assert/strict');
+(async () => {
+  const dir = fs.mkdtempSync(require('node:path').join(require('node:os').tmpdir(), 'muizi-browser-'));
+  const key = crypto.randomBytes(32).toString('hex');
+  const svc = createApplication(loadConfig({ OWNER_API_KEY: key, DATA_DIR: dir }));
+  const server = svc.app.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const base = `http://127.0.0.1:${server.address().port}`;
+  let browser, frontend;
+  try {
+    browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    const errors = []; page.on('pageerror', e => errors.push(e.message));
+    page.on('dialog', dialog => dialog.accept());
+    await page.goto(base);
+    assert.equal(await page.locator('#cdnUrl').inputValue(), base);
+    await page.fill('#apikey', key);
+    await page.setInputFiles('#file', { name: 'FUCK-browser-check.txt', mimeType: 'text/plain', buffer: Buffer.from('Protected browser smoke test') });
+    await page.fill('#uploadPath', 'browser/demo'); await page.selectOption('#uploadVisibility', 'protected');
+    await page.fill('#retentionDays', '30'); await page.selectOption('#uploadRetentionUnit', 'minutes');
+    await page.click('#uploadButton');
+    await page.waitForFunction(() => document.querySelector('#uploadStatus').textContent.includes('Return URL'));
+    const copy = page.locator('#uploadStatus button', { hasText: 'Copy URL' });
+    await copy.click();
+    await page.getByRole('button', { name: 'List Files', exact: true }).click();
+    await page.waitForSelector('#fileList button'); await page.locator('#fileList button').first().click();
+    const id = await page.locator('#managedId').inputValue(); assert.ok(id);
+    const f = svc.store.db.prepare('SELECT * FROM files WHERE id=?').get(id); assert.equal(f.visibility, 'protected'); assert.equal(f.retentionDuration, 1800000);
+    assert.equal((await fetch(base + '/' + f.publicPath)).status, 404);
+    await page.getByRole('button', { name: 'Create Temporary Link', exact: true }).click();
+    await page.waitForSelector('#temporaryLinkResult a'); const href = await page.locator('#temporaryLinkResult a').getAttribute('href');
+    const read = await fetch(href); assert.equal(read.status, 200); assert.equal(await read.text(), 'Protected browser smoke test');
+    await page.locator('.danger-zone summary').click();
+    await page.getByRole('button', { name: 'Revoke All Browser Links', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('#managedResult').textContent.includes('All browser links revoked'));
+    assert.equal((await fetch(href)).status, 404);
+    // Blank is intentional: create a key for the file's lifetime, then select it for a View Link.
+    assert.equal(await page.locator('#accessKeyHours').inputValue(), '');
+    await page.getByRole('button', { name: 'Create File Access Key', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('#createdFileKey').value.startsWith('mz_file_'));
+    const firstKeyId = await page.locator('#viewKeyId').inputValue();
+    assert.equal(svc.store.db.prepare('SELECT expiresAt FROM api_keys WHERE id=?').get(firstKeyId).expiresAt, f.expiresAt);
+    await page.getByRole('button', { name: 'List File Keys', exact: true }).click();
+    await page.waitForSelector('#fileKeyList button');
+    await page.selectOption('#viewKeyId', firstKeyId);
+    await page.getByRole('button', { name: 'Create View Link for Key', exact: true }).click();
+    await page.waitForSelector('#viewLinkResult a');
+    const individualHref = await page.locator('#viewLinkResult a').getAttribute('href');
+    assert.equal((await fetch(individualHref)).status, 200);
+    await page.getByRole('button', { name: 'List View Links', exact: true }).click();
+    await page.waitForSelector('#viewLinkList button');
+    await page.getByRole('button', { name: 'Revoke View Link', exact: true }).first().click();
+    await page.waitForFunction(() => document.querySelector('#viewLinkList').textContent.includes('Revoked'));
+    assert.equal((await fetch(individualHref)).status, 404);
+    await page.getByRole('button', { name: 'Create Key + View Link', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('#createdFileKey').value.startsWith('mz_file_'));
+    const fileKey = await page.locator('#createdFileKey').inputValue();
+    const sharedHref = await page.locator('#viewLinkResult a').getAttribute('href');
+    assert.ok(!sharedHref.includes(fileKey));
+    await page.fill('#protectedFileUrl', base + '/' + f.publicPath);
+    await page.fill('#protectedFileKey', fileKey);
+    await page.fill('#apikey', '');
+    await page.getByRole('button', { name: 'Create View Link', exact: true }).click();
+    await page.waitForSelector('#protectedReaderResult a');
+    const readerHref = await page.locator('#protectedReaderResult a').getAttribute('href');
+    assert.equal((await fetch(readerHref)).status, 200);
+    assert.ok(!readerHref.includes(fileKey));
+    await page.selectOption('#readerLinkKind', 'temporary');
+    await page.getByRole('button', { name: 'Create Temporary Access Link', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('#protectedReaderResult a')?.textContent.includes('Temporary'));
+    const recipientTemp = await page.locator('#protectedReaderResult a').getAttribute('href');
+    assert.equal((await fetch(recipientTemp)).status, 200);
+    assert.ok(!recipientTemp.includes('view_'));
+    await page.selectOption('#readerLinkKind', 'view');
+    const errorPage = await browser.newPage();
+    for (const width of [375, 430, 768, 1440]) {
+      await page.setViewportSize({ width, height: 960 });
+      const openStates = await page.locator('details').evaluateAll(nodes => nodes.map(node => node.open));
+      await page.locator('details').evaluateAll(nodes => nodes.forEach(node => { node.open = true; }));
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `expanded overflow at ${width}`);
+      const badControls = await page.locator('input,select,button').evaluateAll(nodes => nodes.filter(node => node.getClientRects().length && (node.getBoundingClientRect().right > innerWidth + 1 || node.getBoundingClientRect().left < -1 || node.getBoundingClientRect().height < 43)).map(node => node.id || node.textContent));
+      assert.deepEqual(badControls, [], `touch size and containment at ${width}`);
+      await page.locator('details').evaluateAll((nodes,states) => nodes.forEach((node,index) => { node.open = states[index]; }), openStates);
+      if (process.env.SCREENSHOT_DIR) {
+        fs.mkdirSync(process.env.SCREENSHOT_DIR, { recursive: true });
+        await page.screenshot({ path: path.join(process.env.SCREENSHOT_DIR, `panel-${width}.png`), fullPage: true });
+        if (width === 375 || width === 1440) await page.locator('#manage').screenshot({ path: path.join(process.env.SCREENSHOT_DIR, `manage-${width}.png`) });
+      }
+      await errorPage.setViewportSize({width,height:800});
+      const missing = await errorPage.goto(base + '/no-such-file'); assert.equal(missing.status(), 404);
+      const missingBody = await errorPage.locator('body').textContent();
+      const denied = await errorPage.goto(base + '/' + f.publicPath); assert.equal(denied.status(),404);
+      assert.equal(await errorPage.locator('body').textContent(),missingBody);
+      assert.equal(await errorPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),true, `error overflow at ${width}`);
+      if (process.env.SCREENSHOT_DIR && width === 375) await errorPage.screenshot({path:path.join(process.env.SCREENSHOT_DIR,'error-375.png')});
+    }
+    await errorPage.close();
+    await page.setViewportSize({width:1440,height:1000});
+    await page.fill('#apikey', key);
+    await page.getByRole('button', { name: 'Check Health', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('#healthState').textContent.trim() === 'ok');
+    await page.getByRole('button', { name: 'Check Readiness', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('#healthState').textContent.trim() === 'Ready');
+    assert.equal(await page.locator('#healthState').getAttribute('data-state'), 'good');
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download Selected File', exact: true }).click();
+    const download = await downloadPromise;
+    assert.equal(download.suggestedFilename(), 'redacted-browser-check.txt');
+    await page.getByRole('button', { name: 'Revoke All Shared Access', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('#managedResult').textContent.includes('All generated file keys'));
+    assert.equal((await fetch(readerHref)).status, 404);
+    assert.equal((await fetch(base + '/' + f.publicPath, { headers: { Authorization: `Bearer ${fileKey}` } })).status, 401);
+    assert.equal(await page.locator('#createdFileKey').inputValue(), '');
+    await page.locator('summary', { hasText: 'File details and visibility' }).click();
+    await page.selectOption('#managedVisibility', 'public'); await page.fill('#displayFilename', 'renamed.txt');
+    await page.getByRole('button', { name: 'Save Visibility / Filename', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('#managedResult').textContent.includes('renamed.txt'));
+    assert.equal((await fetch(base + '/' + f.publicPath)).status, 200);
+    await page.fill('#apikey', '');
+    if (process.env.SCREENSHOT_PATH) await page.screenshot({ path: process.env.SCREENSHOT_PATH, fullPage: true });
+    assert.deepEqual(errors, []);
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'populated mobile overflow');
+    await page.goto(base + '/example-upload.html?file=' + encodeURIComponent(f.publicPath) + '#open-protected');
+    assert.equal(await page.locator('#protectedFileUrl').inputValue(), base + '/' + f.publicPath);
+    assert.equal(await page.locator('#apikey').inputValue(), '');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'mobile overflow');
+    // Serve the same panel from an independent static frontend, as in a
+    // Vercel deployment. Its origin must not receive a credentialed upload.
+    let wrongUploads = 0, healthHadCredentials = false;
+    frontend = http.createServer((req, res) => {
+      if (req.url === '/health') {
+        healthHadCredentials ||= Boolean(req.headers.authorization);
+        res.writeHead(404, { 'Content-Type': 'text/html' }); res.end('Static frontend'); return;
+      }
+      if (req.method === 'POST') wrongUploads++;
+      if (req.url === '/' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(fs.readFileSync(path.join(__dirname, '..', 'example-upload.html'))); return;
+      }
+      res.writeHead(404); res.end();
+    }).listen(0, '127.0.0.1'); await once(frontend, 'listening');
+    const frontOrigin = `http://127.0.0.1:${frontend.address().port}`;
+    const separatePanel = await browser.newPage();
+    await separatePanel.goto(frontOrigin);
+    await separatePanel.fill('#apikey', key);
+    await separatePanel.setInputFiles('#file', { name: 'separate-panel.txt', mimeType: 'text/plain', buffer: Buffer.from('Separate frontend upload') });
+    await separatePanel.click('#uploadButton');
+    await separatePanel.waitForFunction(() => document.querySelector('#uploadStatus').textContent.includes('backend host'));
+    assert.equal(wrongUploads, 0); assert.equal(healthHadCredentials, false);
+    await separatePanel.fill('#cdnUrl', base);
+    await separatePanel.getByRole('button', { name: 'Test CDN Connection', exact: true }).click();
+    await separatePanel.waitForFunction(() => document.querySelector('#cdnConnectionStatus').textContent === 'CDN backend connected.');
+    await separatePanel.click('#uploadButton');
+    await separatePanel.waitForFunction(() => document.querySelector('#uploadStatus').textContent.includes('Return URL'));
+    await separatePanel.reload(); assert.equal(await separatePanel.locator('#cdnUrl').inputValue(), base);
+    assert.equal(await separatePanel.locator('#apikey').inputValue(), '');
+    const stored = await separatePanel.evaluate(() => JSON.stringify(localStorage)); assert.ok(stored.includes(base)); assert.ok(!stored.includes(key));
+    await separatePanel.close();
+
+    // Test the actual native media document, not only range-response headers.
+    const movie = path.join(dir, 'playback.mp4');
+    const made = spawnSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=160x120:duration=3', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', movie]);
+    assert.equal(made.status, 0, 'ffmpeg fixture generation');
+    const videoForm = new FormData(); videoForm.append('file', new Blob([fs.readFileSync(movie)]), 'playback.mp4'); videoForm.append('visibility', 'protected');
+    const videoFile = await (await fetch(base + '/upload', { method: 'POST', headers: { Authorization: `Bearer ${key}` }, body: videoForm })).json();
+    const videoLink = await (await fetch(base + `/api/files/${videoFile.filename}/links`, { method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: '{}' })).json();
+    const playbackPage = await browser.newPage(); let blockedMedia = false;
+    playbackPage.on('console', message => { if (/Content Security Policy|sandboxed/.test(message.text())) blockedMedia = true; });
+    const navigation = await playbackPage.goto(base + videoLink.url, { waitUntil: 'domcontentloaded', timeout: 10000 });
+    assert.equal(navigation.status(), 200);
+    await playbackPage.waitForSelector('video', { timeout: 10000 });
+    await playbackPage.locator('video').evaluate(async video => { video.muted = true; await Promise.race([video.play(), new Promise((_, reject) => setTimeout(() => reject(new Error('Native video playback timed out')), 8000))]); });
+    await playbackPage.waitForFunction(() => { const video = document.querySelector('video'); return video && video.readyState >= 2 && video.currentTime > 0.1; }, null, { timeout: 10000 });
+    assert.equal(blockedMedia, false, 'native player CSP');
+    await playbackPage.locator('video').evaluate(video => { video.currentTime = 1.5; });
+    await playbackPage.waitForFunction(() => document.querySelector('video').currentTime >= 1.5);
+    await playbackPage.close();
+    // Exercise policy controls and selected-file operations as an account user.
+    const account = await (await fetch(base + '/api/keys', {method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({userId:'browser-account',scopes:['files:upload','files:manage']})})).json();
+    const operationsPage = await browser.newPage({viewport:{width:375,height:900}});
+    operationsPage.on('dialog', dialog => dialog.accept());
+    operationsPage.on('pageerror', error => errors.push(error.message));
+    await operationsPage.goto(base);
+    await operationsPage.fill('#apikey',account.key);
+    await operationsPage.getByRole('button',{name:'Test CDN Connection',exact:true}).click();
+    await operationsPage.waitForFunction(() => document.querySelector('#cdnConnectionStatus').textContent === 'CDN backend connected.');
+    assert.equal(await operationsPage.locator('#uploadRetentionMode option[value="permanent"]').isDisabled(),true);
+    assert.match(await operationsPage.locator('#retentionPolicyHint').textContent(),/Default: 7 days/);
+    await operationsPage.setInputFiles('#file',{name:'default-policy.txt',mimeType:'text/plain',buffer:Buffer.from('Default retention browser workflow')});
+    const defaultUpload = operationsPage.waitForResponse(response => response.url() === base + '/upload' && response.request().method() === 'POST');
+    await operationsPage.click('#uploadButton'); const defaultResult = await (await defaultUpload).json();
+    assert.equal(defaultResult.file.retentionDuration,7 * 86400000);
+    await operationsPage.getByRole('button',{name:'List Files',exact:true}).click();
+    await operationsPage.locator('#fileList button').filter({hasText:'default-policy.txt'}).click();
+    await operationsPage.locator('summary').filter({hasText:'Move, retention, and deletion'}).click();
+    await operationsPage.fill('#movePath','mobile/moved'); await operationsPage.getByRole('button',{name:'Move File',exact:true}).click();
+    await operationsPage.waitForFunction(() => document.querySelector('#moveStatus').textContent.includes('successfully') && document.querySelector('#retentionFile').value.includes('mobile/moved'));
+    assert.equal((await fetch(base + defaultResult.url)).status,404);
+    await operationsPage.fill('#existingRetentionDays','2'); await operationsPage.selectOption('#existingRetentionUnit','days');
+    await operationsPage.getByRole('button',{name:'Update Retention',exact:true}).click();
+    await operationsPage.waitForFunction(() => document.querySelector('#retentionStatus').textContent.includes('Retention updated'));
+    const changed = svc.store.db.prepare('SELECT * FROM files WHERE id=?').get(defaultResult.filename); assert.equal(changed.retentionDuration,2 * 86400000);
+    await operationsPage.getByRole('button',{name:'Delete File',exact:true}).click();
+    await operationsPage.waitForFunction(() => document.querySelector('#deleteStatus').textContent.includes('File deleted'));
+    assert.equal(svc.store.db.prepare('SELECT * FROM files WHERE id=?').get(defaultResult.filename),undefined);
+    svc.config.allowPermanent = true;
+    try {
+      await operationsPage.reload(); await operationsPage.fill('#apikey',account.key);
+      await operationsPage.getByRole('button',{name:'Test CDN Connection',exact:true}).click();
+    await operationsPage.waitForFunction(() => document.querySelector('#cdnConnectionStatus').textContent === 'CDN backend connected.');
+      assert.equal(await operationsPage.locator('#uploadRetentionMode option[value="permanent"]').isDisabled(),false);
+      await operationsPage.selectOption('#uploadRetentionMode','permanent');
+      await operationsPage.setInputFiles('#file',{name:'permanent-policy.txt',mimeType:'text/plain',buffer:Buffer.from('Permanent browser workflow')});
+      const permanentUpload = operationsPage.waitForResponse(response => response.url() === base + '/upload' && response.request().method() === 'POST');
+      await operationsPage.click('#uploadButton'); const permanentResult = await (await permanentUpload).json();
+      assert.equal(permanentResult.file.expiresAt,null);
+    } finally { svc.config.allowPermanent = false; }
+    await operationsPage.close();
+    assert.deepEqual(errors,[]);
+    console.log('Chromium passed: upload progress/result, copy button, listing/selection, protected access, signed links, revocation, metadata update, file-only sharing/reader without owner credentials, safe download filename, revocation, mobile layout, separate frontend routing/persistence, native protected video playback/seeking, 375/430/768/1440px expanded layout and touch targets, generic browser errors, individual View Link revocation, recipient temporary sharing, health indicators, account default/permanent retention controls, move/retention/delete workflow, no page errors.');
+  } finally {
+    if (browser) await browser.close();
+    if (frontend) { frontend.closeAllConnections(); await new Promise(r => frontend.close(r)); }
+    server.closeAllConnections(); await new Promise(r => server.close(r)); svc.close(); fs.rmSync(dir, { recursive: true, force: true });
+  }
+})().catch(err => { console.error(err.stack || err.message); process.exitCode = 1; });

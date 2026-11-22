@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.*
+!.env.example
+uploads/
+temp/
+cdn.db*
+keys.json
+signing.key
+data/
+*.log
+coverage/

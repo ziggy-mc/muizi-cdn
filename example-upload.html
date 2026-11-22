@@ -76,6 +76,7 @@
         }
 
         button,
+        select,
         input {
             font: inherit;
         }
@@ -244,6 +245,8 @@
             gap: 18px;
         }
 
+        select,
+        input:not([type]),
         input[type="text"],
         input[type="number"],
         input[type="password"],
@@ -583,7 +586,69 @@
                 padding: 18px;
             }
         }
-    </style>
+    select { padding-right: 30px; }
+#fileKeyList { overflow-wrap: anywhere; }
+#createdKeyPanel { margin-top: 18px; }
+hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
+#fileList button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: left; }
+label[for="apikey"] { margin-top: 17px; }
+
+/* File management layout */
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; scroll-padding-top: 20px; }
+.page { width: min(1160px, calc(100% - 32px)); }
+.page-nav { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 24px; }
+.page-nav a { padding: 11px 15px; border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; }
+.card, .card-body, .field, .two-column > *, .share-grid > * { min-width: 0; }
+.card-body { display: grid; gap: 18px; }
+.card-body > *, .field { margin-bottom: 0; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field label { margin: 0; }
+input, select, button, .toggle-password, .small-button { min-height: 44px; }
+.toggle-password:active { transform: translateY(-50%); }
+button[aria-busy="true"]::after { content: " …"; }
+input, select { width: 100%; min-width: 0; }
+button { white-space: normal; overflow-wrap: anywhere; max-width: 100%; }
+button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; }
+.actions button { flex: 0 1 auto; }
+.group { border: 1px solid var(--border); background: var(--panel-2); border-radius: 12px; padding: 20px; min-width: 0; }
+.group h3 { margin: 0 0 8px; font-size: 17px; }
+.group p { line-height: 1.6; }
+.group-body, .share-grid { display: grid; gap: 18px; }
+.group-body { padding-top: 20px; }
+summary { cursor: pointer; font-weight: 600; min-height: 24px; }
+.share-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.share-grid > :last-child { grid-column: 1 / -1; }
+.group .field, .group .actions { margin-top: 16px; }
+.file-list, .key-list { display: grid; gap: 10px; overflow-wrap: anywhere; }
+.file-list button { width: 100%; text-align: left; display: grid; gap: 5px; padding: 14px; }
+.file-list small { color: var(--muted); font-weight: 400; }
+.file-list button[aria-pressed="true"] { border-color: var(--accent); background: rgba(109,124,255,.12); }
+.file-summary { padding: 16px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; overflow-wrap: anywhere; line-height: 1.7; }
+.key-list > div { border-top: 1px solid var(--border); padding-top: 12px; font-size: 13px; line-height: 1.7; }
+.key-list button { margin: 8px 0 0; }
+.status { margin: 0; overflow-wrap: anywhere; min-width: 0; }
+.status:empty, .file-list:empty, .key-list:empty { display: none; }
+.status a { display: inline-block; margin: 8px 0; }
+.danger-zone { border-color: rgba(255,95,109,.35); }
+#createdKeyPanel { margin-top: 16px; padding: 14px; border: 1px solid var(--accent); border-radius: 10px; }
+#createdKeyPanel[hidden] { display: none; }
+.health-value[data-state="good"] { color: var(--success); }
+.health-value[data-state="bad"] { color: var(--danger); }
+@media (max-width: 700px) {
+  .share-grid { grid-template-columns: minmax(0, 1fr); }
+  .two-column { grid-template-columns: minmax(0, 1fr); }
+  .page { width: calc(100% - 24px); padding-top: 24px; }
+  .card-header, .card-body { padding: 20px; }
+  .group { padding: 16px; }
+  .group .card-header, .group .card-body { padding: 16px; }
+  input, select { font-size: 16px; }
+  .actions button { flex: 1 1 150px; }
+  .page-nav a { flex: 1 1 auto; text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
 </head>
 
 <body>
@@ -602,22 +667,26 @@
         </p>
     </header>
 
+    <nav class="page-nav" aria-label="Page sections"><a href="#connection">Connect</a><a href="#upload">Upload</a><a href="#manage">Manage & share</a><a href="#open-protected">Open a file</a><a href="#health">Health</a></nav>
     <main class="layout">
 
         <!-- Authentication -->
-        <section class="card">
+        <section class="card" id="connection">
             <div class="card-header">
-                <h2 class="card-title">Authentication</h2>
+                <h2 class="card-title">Connect to your CDN</h2>
 
                 <p class="card-description">
-                    Enter the API key used to authenticate requests to your CDN.
+                    Use your owner or account API key to upload and manage files. If someone sent you a file-only key, use “Open a protected file” below.
                 </p>
             </div>
 
             <div class="card-body">
                 <div class="field">
-                    <label for="apikey">
-                        API Key
+                    <label for="cdnUrl">CDN URL</label>
+                    <input id="cdnUrl" type="url" autocomplete="off" placeholder="https://cdn.example.com">
+                    <div class="hint">Your backend address is remembered on this device. Keys stay in memory and clear when you reload.</div><div class="actions"><button type="button" onclick="testCdnConnection()">Test CDN Connection</button></div><div id="cdnConnectionStatus" class="hint" aria-live="polite"></div>
+                    </div><div class="field"><label for="apikey">
+                        Owner / Account API Key
                     </label>
 
                     <div class="password-wrap">
@@ -641,12 +710,12 @@
         </section>
 
         <!-- Upload -->
-        <section class="card">
+        <section class="card" id="upload">
             <div class="card-header">
                 <h2 class="card-title">Upload File</h2>
 
                 <p class="card-description">
-                    Upload a file with an optional directory and retention period.
+                    Choose a file and its access settings.
                 </p>
             </div>
 
@@ -663,11 +732,12 @@
                     >
                 </div>
 
+                <div class="field"><label for="uploadRetentionMode">Keep this file</label><select id="uploadRetentionMode" onchange="updateRetentionMode()"><option value="default">Server default retention</option><option value="custom">Custom duration</option><option value="permanent" disabled>Permanent (check connection first)</option></select><div id="retentionPolicyHint" class="hint">Connect with your account key to load retention rules. Default retention uses the server setting.</div></div>
                 <div class="two-column">
 
                     <div class="field">
                         <label for="uploadPath">
-                            Upload Path
+                            Destination folder
                         </label>
 
                         <input
@@ -684,11 +754,11 @@
 
                     <div class="field">
                         <label for="retentionDays">
-                            Retention Days
+                            Retention Duration
                         </label>
 
                         <input
-                            id="retentionDays"
+                            id="retentionDays" oninput="document.getElementById('uploadRetentionMode').value = this.value ? 'custom' : 'default'"
                             type="number"
                             min="1"
                             step="1"
@@ -703,6 +773,17 @@
 
                 </div>
 
+                <div class="two-column">
+                    <div class="field">
+                        <label for="uploadVisibility">Visibility</label>
+                        <select id="uploadVisibility"><option value="">Server default</option><option value="public">Public — anyone with URL</option><option value="protected">Protected — shared access only</option></select><div class="hint">Public files open with their URL. Protected files need a file key, View Link, or Temporary Access Link.</div>
+                    </div>
+                    <div class="field">
+                        <label for="uploadRetentionUnit">Retention unit</label>
+                        <select id="uploadRetentionUnit"><option value="days">Days</option><option value="hours">Hours</option><option value="minutes">Minutes</option><option value="weeks">Weeks</option></select>
+                        <div class="hint">Custom retention must meet the configured minimum.</div>
+                    </div>
+                </div>
                 <div class="actions">
                     <button
                         type="button"
@@ -739,171 +820,56 @@
             </div>
         </section>
 
-        <!-- File operations -->
-        <div class="two-column">
-
-            <!-- Delete -->
-            <section class="card">
-                <div class="card-header">
-                    <h2 class="card-title">
-                        Delete File
-                    </h2>
-
-                    <p class="card-description">
-                        Permanently remove a file from the CDN.
-                    </p>
-                </div>
-
-                <div class="card-body">
-                    <div class="field">
-                        <label for="deleteFileInput">
-                            File Path
-                        </label>
-
-                        <input
-                            id="deleteFileInput"
-                            type="text"
-                            placeholder="abc123.mp4"
-                            autocomplete="off"
-                        >
-
-                        <div class="hint">
-                            Include the folder path when needed.
-                        </div>
-                    </div>
-
-                    <div class="actions">
-                        <button
-                            type="button"
-                            class="danger"
-                            onclick="deleteFileRequest()"
-                        >
-                            Delete File
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Retention -->
-            <section class="card">
-                <div class="card-header">
-                    <h2 class="card-title">
-                        Change Retention
-                    </h2>
-
-                    <p class="card-description">
-                        Change how long an existing file should remain available.
-                    </p>
-                </div>
-
-                <div class="card-body">
-
-                    <div class="field">
-                        <label for="retentionFile">
-                            File Path
-                        </label>
-
-                        <input
-                            id="retentionFile"
-                            type="text"
-                            placeholder="abc123.mp4"
-                            autocomplete="off"
-                        >
-                    </div>
-
-                    <div class="field">
-                        <label for="existingRetentionDays">
-                            Retention Days
-                        </label>
-
-                        <input
-                            id="existingRetentionDays"
-                            type="number"
-                            min="1"
-                            step="1"
-                            placeholder="Leave empty for unlimited"
-                            inputmode="numeric"
-                        >
-
-                        <div class="hint">
-                            Enter a number to expire the file.
-                            Leave empty to make it permanent.
-                        </div>
-                    </div>
-
-                    <div class="actions">
-                        <button
-                            type="button"
-                            class="primary"
-                            onclick="changeRetention()"
-                        >
-                            Update Retention
-                        </button>
-                    </div>
-
-                </div>
-            </section>
-        </div>
-
-        <!-- Move -->
-        <section class="card">
-            <div class="card-header">
-                <h2 class="card-title">
-                    Move File
-                </h2>
-
-                <p class="card-description">
-                    Move an existing file into another CDN directory.
-                </p>
-            </div>
-
+        <section class="card" id="manage">
+            <div class="card-header"><h2 class="card-title">Manage and share files</h2><p class="card-description">Select a file, then manage its details and shared access.</p></div>
             <div class="card-body">
-
-                <div class="two-column">
-
-                    <div class="field">
-                        <label for="moveFileInput">
-                            Current File Path
-                        </label>
-
-                        <input
-                            id="moveFileInput"
-                            type="text"
-                            placeholder="abc123.mp4"
-                            autocomplete="off"
-                        >
-                    </div>
-
-                    <div class="field">
-                        <label for="movePath">
-                            New Path
-                        </label>
-
-                        <input
-                            id="movePath"
-                            type="text"
-                            placeholder="images/avatars"
-                            autocomplete="off"
-                        >
-                    </div>
-
+                <div class="field"><label for="listFolder">Find files in a folder</label><input id="listFolder" placeholder="All folders (or enter an exact folder path)"></div>
+                <div class="actions"><button class="primary" onclick="listFiles()">List Files</button><button id="nextFiles" onclick="listFiles(true)" disabled>Next Page</button></div>
+                <div id="fileList" class="file-list" aria-live="polite"></div>
+                <div class="field"><label for="managedId">Selected file ID</label><input id="managedId" placeholder="Select a file above or paste its ID" oninput="clearSelection()"></div>
+                <div id="selectedFileInfo" class="file-summary">No file selected.</div>
+                <div class="actions"><button onclick="showMetadata()">Load File Details</button><button onclick="copySelectedUrl()">Copy File URL</button><button onclick="protectedDownload()">Download Selected File</button></div>
+                <details class="group"><summary>File details and visibility</summary><div class="group-body">
+                    <div class="two-column"><div class="field"><label for="managedVisibility">Visibility</label><select id="managedVisibility"><option value="protected">Protected</option><option value="public">Public</option></select></div><div class="field"><label for="displayFilename">Download filename</label><input id="displayFilename" placeholder="photo.jpg"></div></div>
+                    <div class="actions"><button onclick="saveMetadata()">Save Visibility / Filename</button><button onclick="showMetadata(true)">View Metadata</button></div>
+                </div></details>
+                <div class="share-grid">
+                    <section class="group"><h3>1. File Access Keys</h3><p class="hint">Reads this protected file only. Cannot upload, edit, or delete. Copy new keys once; they cannot be retrieved later.</p>
+                        <div class="field"><label for="accessKeyHours">Key lifetime in hours (optional)</label><input id="accessKeyHours" type="number" min="1" step="1" placeholder="Until file expiration"><div class="hint">Leave intentionally blank for the file’s lifetime, bounded by your account key. For permanent files, valid until revoked.</div></div>
+                        <div class="actions"><button onclick="createFileAccessKey()">Create File Access Key</button><button onclick="listFileAccessKeys()">List File Keys</button></div>
+                        <div id="fileKeyResult" class="status" aria-live="polite"></div><div id="createdKeyPanel" hidden><label for="createdFileKey">New file access key — copy now</label><input id="createdFileKey" type="password" readonly autocomplete="off"><div class="actions"><button onclick="copyFileKey()">Copy File Key</button><button onclick="clearFileKey()">Clear Key from Page</button></div><p id="createdKeyExpiry" class="hint"></p></div>
+                        <div id="fileKeyList" class="key-list" aria-live="polite"></div>
+                    </section>
+                    <section class="group"><h3>2. View Links</h3><p class="hint">Browser access using a File Access Key’s expiration. Anyone with the link can read the file until it expires or is revoked.</p>
+                        <div class="field"><label for="viewKeyId">Associated File Access Key</label><select id="viewKeyId"><option value="">Create or list file keys first</option></select></div>
+                        <div class="actions"><button onclick="createViewLink()">Create View Link for Key</button><button onclick="createShareLink()">Create Key + View Link</button><button onclick="listViewLinks()">List View Links</button></div>
+                        <div id="viewLinkResult" class="status" aria-live="polite"></div><div id="viewLinkList" class="key-list" aria-live="polite"></div>
+                    </section>
+                    <section class="group"><h3>3. Temporary Access Links</h3><p class="hint">Short-lived sharing with its own lifetime, bounded by the file and issuing credential.</p>
+                        <div class="two-column"><div class="field"><label for="linkSeconds">Lifetime in seconds</label><input id="linkSeconds" type="number" min="1" value="300" list="linkPresets"><datalist id="linkPresets"><option value="300">5 minutes</option><option value="900">15 minutes</option><option value="3600">1 hour (if allowed)</option></datalist><div id="temporaryLimit" class="hint">The server’s configured maximum applies.</div></div><div class="field"><label for="linkDownload">Link behavior</label><select id="linkDownload"><option value="false">View if safe</option><option value="true">Download only</option></select></div></div>
+                        <div class="actions"><button onclick="createLink()">Create Temporary Link</button></div><div id="temporaryLinkResult" class="status" aria-live="polite"></div>
+                    </section>
                 </div>
-
-                <div class="actions">
-                    <button
-                        type="button"
-                        class="primary"
-                        onclick="moveFileRequest()"
-                    >
-                        Move File
-                    </button>
-                </div>
-
+                <div id="managedResult" class="status" aria-live="polite"></div>
+                <details class="group"><summary>Move, retention, and deletion</summary><div class="group-body">
+                    <section class="group"><h3>Move file</h3><div class="two-column"><div class="field"><label for="moveFileInput">Current file path</label><input id="moveFileInput" placeholder="folder/file-id"></div><div class="field"><label for="movePath">Destination folder</label><input id="movePath" placeholder="Empty for root"><div class="hint">Existing shared URLs stop working after a move. File Access Keys remain valid.</div></div></div><div class="actions"><button onclick="moveFileRequest()">Move File</button></div><div id="moveStatus" class="status" aria-live="polite"></div></section>
+                    <section class="group"><h3>Change retention</h3><div class="field"><label for="retentionFile">File path</label><input id="retentionFile" placeholder="folder/file-id"></div><div class="two-column"><div class="field"><label for="existingRetentionDays">Duration (optional)</label><input id="existingRetentionDays" type="number" min="1" step="1" placeholder="Empty for permanent" inputmode="numeric"></div><div class="field"><label for="existingRetentionUnit">Retention unit</label><select id="existingRetentionUnit"><option value="days">Days</option><option value="hours">Hours</option><option value="minutes">Minutes</option><option value="weeks">Weeks</option></select></div></div><p class="hint">Measured from the original upload, not today. Empty means permanent storage if your account permits it. Updating retention invalidates existing browser links.</p><div class="actions"><button onclick="changeRetention()">Update Retention</button></div><div id="retentionStatus" class="status" aria-live="polite"></div></section>
+                    <section class="group danger-zone"><h3>Delete file</h3><p class="hint">Permanently removes the file and invalidates every associated key and link.</p><div class="field"><label for="deleteFileInput">File path</label><input id="deleteFileInput" placeholder="folder/file-id"></div><div class="actions"><button class="danger" onclick="deleteFileRequest()">Delete File</button></div><div id="deleteStatus" class="status" aria-live="polite"></div></section>
+                </div></details>
+                <details class="group danger-zone"><summary>Revoke shared access</summary><div class="group-body"><p class="hint">Revoking browser links leaves keys active. Revoking all shared access also invalidates every file key. Your account permissions remain active.</p><div class="actions"><button class="danger" onclick="revokeLinks()">Revoke All Browser Links</button><button class="danger" onclick="revokeSharedAccess()">Revoke All Shared Access</button></div></div></details>
             </div>
         </section>
-
+        <section class="card" id="open-protected">
+            <div class="card-header"><h2 class="card-title">Open a Protected File</h2><p class="card-description">A View Link follows its key’s lifetime. A Temporary Access Link expires sooner. Open either directly; use this form when you received a file URL and File Access Key.</p></div>
+            <div class="card-body">
+                <div class="field"><label for="protectedFileUrl">File URL or path</label><input id="protectedFileUrl" type="text" placeholder="https://cdn.example.com/images/UUID" autocomplete="off"></div>
+                <div class="field"><label for="protectedFileKey">File access key</label><input id="protectedFileKey" type="password" autocomplete="off" placeholder="Paste the key supplied for this file"><div class="hint">The key is sent in an authorization header to the configured CDN, never included in the browser URL.</div></div>
+                <div class="field"><label for="readerLinkKind">Browser access</label><select id="readerLinkKind"><option value="view">View Link — follows key expiration</option><option value="temporary">Temporary Access Link — short-lived</option></select></div><div class="field"><label for="readerLinkSeconds">Temporary lifetime in seconds</label><input id="readerLinkSeconds" type="number" min="1" value="300"><div class="hint">Used only for Temporary Access Links.</div></div><div class="actions"><button onclick="openProtectedFile(false)">Create View Link</button><button onclick="openProtectedFile(true)">Create Download Link</button></div>
+                <div id="protectedReaderResult" class="status" aria-live="polite"></div>
+            </div>
+        </section>
         <!-- Health -->
-        <section class="card">
+        <section class="card" id="health">
             <div class="card-header">
                 <h2 class="card-title">
                     CDN Health
@@ -1007,7 +973,45 @@
 "use strict";
 
 
-const CDN_URL = "https://assets.example.com";
+function getCdnUrl() {
+    const value = document.getElementById("cdnUrl").value.trim();
+    let url;
+    try { url = new URL(value); } catch { throw new Error("Set CDN URL to your backend HTTP(S) address, such as https://cdn.example.com"); }
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.search || url.hash || url.pathname !== "/") {
+        throw new Error("CDN URL must be an HTTP(S) origin.");
+    }
+    return url.origin;
+}
+let savedCdnOrigin = "";
+try { savedCdnOrigin = localStorage.getItem("muizi-cdn-origin") || ""; } catch { /* Browser storage may be unavailable. */ }
+document.getElementById("cdnUrl").value = savedCdnOrigin || ((location.protocol === "http:" || location.protocol === "https:") ? location.origin : "http://127.0.0.1:3010");
+let verifiedCdn = null;
+async function verifyCdnConnection(force = false) {
+    const origin = getCdnUrl();
+    if (!force && verifiedCdn?.origin === origin && verifiedCdn.until > Date.now()) { await loadPanelConfig(origin).catch(() => {}); return origin; }
+    const status = document.getElementById("cdnConnectionStatus");
+    status.textContent = "Checking CDN backend...";
+    try {
+        const response = await fetch(origin + "/health", { cache: "no-store", credentials: "omit", redirect: "error", signal: AbortSignal.timeout(8000) });
+        const data = await response.json().catch(() => null);
+        if (!response.ok || data?.status !== "ok" || typeof data.uptime !== "number" || typeof data.timestamp !== "number") {
+            throw new Error("No MUIZI CDN API found at this address. Change CDN URL to the backend host, not the frontend host.");
+        }
+        verifiedCdn = { origin, until: Date.now() + 30000 };
+        try { localStorage.setItem("muizi-cdn-origin", origin); } catch { /* Never store credentials. */ }
+        await loadPanelConfig(origin).catch(() => {});
+        status.textContent = "CDN backend connected.";
+        return origin;
+    } catch (error) {
+        const message = error.message.startsWith("No MUIZI CDN API") ? error.message : "Cannot reach the CDN backend. Check CDN URL, server availability, HTTPS and CORS settings.";
+        status.textContent = message;
+        throw new Error(message);
+    }
+}
+async function testCdnConnection() {
+    try { await verifyCdnConnection(true); }
+    catch (error) { document.getElementById("cdnConnectionStatus").textContent = error.message; }
+}
 
 
 function getApiKey() {
@@ -1022,7 +1026,7 @@ function requireApiKey() {
     const apiKey = getApiKey();
 
     if (!apiKey) {
-        alert("Enter an API key first.");
+        setStatus("cdnConnectionStatus", "Enter an account API key to manage files.", "error");
         return null;
     }
 
@@ -1122,7 +1126,7 @@ async function uploadFile() {
     const file = fileInput.files[0];
 
     if (!file) {
-        alert("Select a file first.");
+        setStatus("uploadStatus", "Select a file first.", "error");
         return;
     }
 
@@ -1144,18 +1148,27 @@ async function uploadFile() {
 
     let retentionDays = null;
 
-    if (retentionInput !== "") {
+    if (retentionInput !== "" && document.getElementById("uploadRetentionMode").value === "custom") {
         retentionDays = Number(retentionInput);
 
         if (
             !Number.isInteger(retentionDays) ||
             retentionDays < 1
         ) {
-            alert("Enter a valid retention period in days.");
+            setStatus("uploadStatus", "Enter a positive whole retention duration.", "error");
             return;
         }
     }
 
+    if (document.getElementById('uploadRetentionMode').value === 'custom' && retentionDays === null) { setStatus('uploadStatus','Enter a custom retention duration.','error'); return; }
+    let cdnOrigin;
+    setUploadButtonBusy(true);
+    try { cdnOrigin = await verifyCdnConnection(); }
+    catch (error) {
+        setUploadButtonBusy(false);
+        setStatus("uploadStatus", escapeHtml(error.message), "error");
+        return;
+    }
     resetProgress();
 
     setUploadButtonBusy(true);
@@ -1170,6 +1183,8 @@ async function uploadFile() {
 
     form.append("file", file);
 
+    const visibility = document.getElementById("uploadVisibility").value;
+    if (visibility) form.append("visibility", visibility);
     if (uploadPath !== "") {
         form.append("path", uploadPath);
     }
@@ -1178,7 +1193,7 @@ async function uploadFile() {
 
     xhr.open(
         "POST",
-        `${CDN_URL}/upload`,
+        `${cdnOrigin}/upload`,
         true
     );
 
@@ -1187,11 +1202,13 @@ async function uploadFile() {
         `Bearer ${apiKey}`
     );
 
+    if (document.getElementById("uploadRetentionMode").value === "permanent") xhr.setRequestHeader("X-Retention-Enabled", "false");
     if (retentionDays !== null) {
         xhr.setRequestHeader(
-            "X-Retention-Days",
+            "X-Retention-Duration",
             String(retentionDays)
         );
+        xhr.setRequestHeader("X-Retention-Unit", document.getElementById("uploadRetentionUnit").value);
     }
 
     xhr.timeout = 60 * 60 * 1000;
@@ -1253,6 +1270,10 @@ async function uploadFile() {
     xhr.onload = () => {
         setUploadButtonBusy(false);
 
+        if (xhr.status === 404) {
+            setStatus("uploadStatus", "The configured host returned 404 for /upload. Set CDN URL to the backend host and check its proxy routing.", "error");
+            return;
+        }
         let data = {};
 
         try {
@@ -1296,10 +1317,10 @@ async function uploadFile() {
             return;
         }
 
-        const returnedUrl =
-            data.url ||
-            data.returnUrl ||
-            "";
+        if (data.file) selectFile(data.file);
+        const candidateUrl = data.url || data.returnUrl || "";
+        const parsedUrl = candidateUrl ? new URL(candidateUrl, getCdnUrl()) : null;
+        const returnedUrl = parsedUrl && ["http:", "https:"].includes(parsedUrl.protocol) ? parsedUrl.href : "";
 
         document.getElementById("progress")
             .value = 100;
@@ -1334,9 +1355,7 @@ async function uploadFile() {
                             <button
                                 type="button"
                                 class="small-button"
-                                onclick="copyUrl(${JSON.stringify(
-                                    returnedUrl
-                                )})"
+                                onclick="copyUrl(${escapeHtml(JSON.stringify(returnedUrl))})"
                             >
                                 Copy URL
                             </button>
@@ -1344,11 +1363,9 @@ async function uploadFile() {
                             <button
                                 type="button"
                                 class="small-button"
-                                onclick="window.open(${JSON.stringify(
-                                    returnedUrl
-                                )}, '_blank', 'noopener,noreferrer')"
+                                onclick="${data.file?.visibility === 'protected' ? "document.getElementById('manage').scrollIntoView()" : `window.open(${escapeHtml(JSON.stringify(returnedUrl))}, '_blank', 'noopener,noreferrer')`}"
                             >
-                                Open URL
+                                ${data.file?.visibility === 'protected' ? 'Manage access' : 'Open URL'}
                             </button>
                         </div>
                     </div>
@@ -1403,8 +1420,9 @@ async function uploadFile() {
                         </div>
                     </div>
 
+                    ${data.file ? `<div class="result-row"><div class="result-label">Availability</div><div class="result-value">${escapeHtml(data.file.visibility)} · ${escapeHtml(data.file.expiresAt === null ? 'Permanent until deleted' : expirationText(data.file.expiresAt))}</div></div>` : ''}
                     ${urlSection}
-
+                    <div id="uploadCopyStatus" class="hint" aria-live="polite"></div>
                 </div>
             `,
             "success"
@@ -1454,24 +1472,10 @@ async function uploadFile() {
 
 
 async function copyUrl(url) {
-    try {
-        await navigator.clipboard.writeText(url);
-
-        setStatus(
-            "uploadStatus",
-            `
-                <strong>✅ URL copied.</strong><br>
-                ${escapeHtml(url)}
-            `,
-            "success"
-        );
-    } catch {
-        alert(
-            "Could not copy automatically. Select the URL manually."
-        );
-    }
+    const feedback = document.getElementById('uploadCopyStatus');
+    try { await navigator.clipboard.writeText(url); if (feedback) feedback.textContent = 'URL copied.'; }
+    catch { if (feedback) feedback.textContent = 'Select and copy the URL manually; clipboard access is unavailable.'; }
 }
-
 
 async function deleteFileRequest() {
     const apiKey = requireApiKey();
@@ -1486,19 +1490,20 @@ async function deleteFileRequest() {
         .trim();
 
     if (!fileName) {
-        alert("Enter a file path.");
+        setStatus("deleteStatus", "Enter a file path.", "error");
         return;
     }
 
+    if (!confirm("Permanently delete this file and invalidate all its shared access?")) return;
     setStatus(
-        "healthStatus",
+        "deleteStatus",
         `Deleting <strong>${escapeHtml(fileName)}</strong>...`,
         "info"
     );
 
     try {
         const response = await fetch(
-            `${CDN_URL}/delete/${encodePath(fileName)}`,
+            `${await verifyCdnConnection()}/delete/${encodePath(fileName)}`,
             {
                 method: "DELETE",
 
@@ -1512,7 +1517,7 @@ async function deleteFileRequest() {
 
         if (!response.ok) {
             setStatus(
-                "healthStatus",
+                "deleteStatus",
                 `
                     <strong>❌ Delete failed.</strong><br>
                     ${escapeHtml(
@@ -1528,16 +1533,22 @@ async function deleteFileRequest() {
         }
 
         setStatus(
-            "healthStatus",
+            "deleteStatus",
             `
                 <strong>✅ File deleted.</strong><br>
                 ${escapeHtml(fileName)}
             `,
             "success"
         );
+        if (selectedFile?.path === fileName) {
+            clearSelection(); document.getElementById('managedId').value = '';
+            document.getElementById('selectedFileInfo').textContent = 'File deleted. Select another file.';
+            for (const id of ['deleteFileInput','retentionFile','moveFileInput']) document.getElementById(id).value = '';
+        }
+        await listFiles();
     } catch {
         setStatus(
-            "healthStatus",
+            "deleteStatus",
             "❌ Network error while deleting the file.",
             "error"
         );
@@ -1563,7 +1574,7 @@ async function changeRetention() {
         .trim();
 
     if (!fileName) {
-        alert("Enter a file path.");
+        setStatus("retentionStatus", "Enter a file path.", "error");
         return;
     }
 
@@ -1576,20 +1587,21 @@ async function changeRetention() {
             !Number.isInteger(days) ||
             days < 1
         ) {
-            alert("Enter a valid retention period in days.");
+            setStatus("retentionStatus", "Enter a positive whole retention duration.", "error");
             return;
         }
     }
 
+    if (days === null && !confirm("Keep this file permanently, if your account permits it?")) return;
     setStatus(
-        "healthStatus",
+        "retentionStatus",
         "Updating file retention...",
         "info"
     );
 
     try {
         const response = await fetch(
-            `${CDN_URL}/retention/${encodePath(fileName)}`,
+            `${await verifyCdnConnection()}/retention/${encodePath(fileName)}`,
             {
                 method: "POST",
 
@@ -1600,7 +1612,8 @@ async function changeRetention() {
 
                 body: JSON.stringify({
                     enabled: days !== null,
-                    days
+                    duration: days,
+                    unit: document.getElementById("existingRetentionUnit").value
                 })
             }
         );
@@ -1609,7 +1622,7 @@ async function changeRetention() {
 
         if (!response.ok) {
             setStatus(
-                "healthStatus",
+                "retentionStatus",
                 `
                     <strong>❌ Retention update failed.</strong><br>
                     ${escapeHtml(
@@ -1625,22 +1638,25 @@ async function changeRetention() {
         }
 
         setStatus(
-            "healthStatus",
+            "retentionStatus",
             `
                 <strong>✅ Retention updated.</strong><br>
                 File: ${escapeHtml(fileName)}<br>
-                Retention:
-                ${
-                    days === null
-                        ? "Unlimited"
-                        : `${days} day${days === 1 ? "" : "s"}`
-                }
+                ${escapeHtml(data.retention.expiresAt === null ? 'Permanent until deleted' : expirationText(data.retention.expiresAt))}
             `,
             "success"
         );
+        if (selectedFile?.path === fileName) {
+            if (data.retention.expiresAt !== null && data.retention.expiresAt <= Date.now()) {
+                clearSelection(); document.getElementById('managedId').value = ''; document.getElementById('selectedFileInfo').textContent = 'File expired under the updated retention policy.';
+            } else {
+                document.getElementById('viewLinkResult').replaceChildren(); document.getElementById('temporaryLinkResult').replaceChildren();
+                await showMetadata(); await listFileAccessKeys(); await listViewLinks();
+            }
+        }
     } catch {
         setStatus(
-            "healthStatus",
+            "retentionStatus",
             "❌ Network error while updating retention.",
             "error"
         );
@@ -1666,24 +1682,21 @@ async function moveFileRequest() {
         .trim();
 
     if (!fileName) {
-        alert("Enter the current file path.");
+        setStatus("moveStatus", "Enter the current file path.", "error");
         return;
     }
 
-    if (!newPath) {
-        alert("Enter the new path.");
-        return;
-    }
+
 
     setStatus(
-        "healthStatus",
+        "moveStatus",
         "Moving file...",
         "info"
     );
 
     try {
         const response = await fetch(
-            `${CDN_URL}/path/${encodePath(fileName)}`,
+            `${await verifyCdnConnection()}/path/${encodePath(fileName)}`,
             {
                 method: "POST",
 
@@ -1702,7 +1715,7 @@ async function moveFileRequest() {
 
         if (!response.ok) {
             setStatus(
-                "healthStatus",
+                "moveStatus",
                 `
                     <strong>❌ Move failed.</strong><br>
                     ${escapeHtml(
@@ -1720,7 +1733,7 @@ async function moveFileRequest() {
         const url = data.url || "";
 
         setStatus(
-            "healthStatus",
+            "moveStatus",
             `
                 <strong>✅ File moved successfully.</strong><br>
                 New path:
@@ -1746,9 +1759,13 @@ async function moveFileRequest() {
             `,
             "success"
         );
+        if (selectedFile?.path === fileName) {
+            document.getElementById('viewLinkResult').replaceChildren(); document.getElementById('temporaryLinkResult').replaceChildren();
+            await showMetadata(); await listFiles(); await listViewLinks();
+        }
     } catch {
         setStatus(
-            "healthStatus",
+            "moveStatus",
             "❌ Network error while moving the file.",
             "error"
         );
@@ -1765,15 +1782,15 @@ async function checkHealth() {
 
     try {
         const response = await fetch(
-            `${CDN_URL}/health`,
+            `${getCdnUrl()}/health`,
             {
-                cache: "no-store"
+                cache: "no-store", credentials: "omit", redirect: "error", signal: AbortSignal.timeout(8000)
             }
         );
 
         const data = await readJson(response);
 
-        if (!response.ok) {
+        if (!response.ok || data.status !== "ok" || typeof data.uptime !== "number") {
             document.getElementById("healthState")
                 .textContent = "Unhealthy";
 
@@ -1830,9 +1847,9 @@ async function checkReady() {
 
     try {
         const response = await fetch(
-            `${CDN_URL}/health/ready`,
+            `${getCdnUrl()}/health/ready`,
             {
-                cache: "no-store"
+                cache: "no-store", credentials: "omit", redirect: "error", signal: AbortSignal.timeout(8000)
             }
         );
 
@@ -1846,7 +1863,7 @@ async function checkReady() {
             .textContent =
             data.storage || "Unknown";
 
-        if (!response.ok) {
+        if (!response.ok || data.status !== "ready" || data.database !== "ok" || data.storage !== "ok") {
             document.getElementById("healthState")
                 .textContent = "Not ready";
 
@@ -1935,6 +1952,235 @@ document
 console.log(
     "[CDN PANEL] JavaScript loaded successfully."
 );
+let nextCursor = null, selectedFile = null, panelConfig = null, configIdentity = null;
+async function loadPanelConfig(origin) {
+    const key = getApiKey();
+    if (!key || configIdentity === origin + key) return;
+    const response = await fetch(origin + '/api/config', { headers: { Authorization: `Bearer ${key}` }, cache: 'no-store', credentials: 'omit', redirect: 'error' });
+    if (!response.ok) return;
+    panelConfig = await response.json(); configIdentity = origin + key;
+    const option = document.querySelector('#uploadRetentionMode option[value="permanent"]');
+    option.disabled = !panelConfig.permanentAllowed;
+    option.textContent = panelConfig.permanentAllowed ? 'Permanent — until deleted' : 'Permanent — unavailable for this account';
+    if (option.disabled && document.getElementById('uploadRetentionMode').value === 'permanent') document.getElementById('uploadRetentionMode').value = 'default';
+    document.getElementById('retentionPolicyHint').textContent = `Default: ${durationText(panelConfig.defaultRetentionMs)}. Custom minimum: ${durationText(panelConfig.minRetentionMs)}. ${panelConfig.permanentAllowed ? 'Permanent storage is allowed.' : 'Permanent storage is disabled for this account.'}`;
+    for (const id of ['linkSeconds', 'readerLinkSeconds']) { document.getElementById(id).max = panelConfig.signedMaxSeconds; if (Number(document.getElementById(id).value) > panelConfig.signedMaxSeconds) document.getElementById(id).value = panelConfig.signedMaxSeconds; }
+    updateRetentionMode();
+    document.getElementById('temporaryLimit').textContent = `Maximum ${durationText(panelConfig.signedMaxSeconds * 1000)}; never outlives the file or issuing key.`;
+}
+function formatBytes(bytes) {
+    if (!bytes) return '0 B';
+    const units = ['B','KB','MB','GB','TB'], index = Math.min(4, Math.floor(Math.log(bytes) / Math.log(1024)));
+    return `${(bytes / 1024 ** index).toFixed(index ? 1 : 0)} ${units[index]}`;
+}
+function durationText(ms) {
+    for (const [unit, size] of [['day',86400000],['hour',3600000],['minute',60000],['second',1000]]) if (ms >= size && ms % size === 0) return `${ms / size} ${unit}${ms / size === 1 ? '' : 's'}`;
+    return `${Math.round(ms / 1000)} seconds`;
+}
+function expirationText(expiresAt, status) {
+    if (status === 'revoked') return 'Revoked';
+    if (status === 'expired' || (expiresAt !== null && expiresAt <= Date.now())) return 'Expired';
+    if (expiresAt === null) return 'Permanent until revoked';
+    const remaining = expiresAt - Date.now();
+    const [unit, size] = remaining >= 2 * 86400000 ? ['day',86400000] : remaining >= 3600000 ? ['hour',3600000] : remaining >= 60000 ? ['minute',60000] : ['second',1000];
+    const count = Math.ceil(remaining / size);
+    return `Expires in ${count} ${unit}${count === 1 ? '' : 's'} · ${new Date(expiresAt).toLocaleString()}`;
+}
+function updateRetentionMode() {
+    const mode = document.getElementById('uploadRetentionMode').value;
+    document.getElementById('retentionDays').disabled = mode === 'permanent';
+    document.getElementById('uploadRetentionUnit').disabled = mode === 'permanent';
+    if (mode === 'default') document.getElementById('retentionDays').value = '';
+}
+async function apiRequest(route, options = {}) {
+    const key = requireApiKey(); if (!key) throw new Error('Account API key required');
+    const origin = await verifyCdnConnection();
+    const response = await fetch(origin + route, { ...options, cache: 'no-store', credentials: 'omit', redirect: 'error', headers: { Authorization: `Bearer ${key}`, ...(options.body ? { 'Content-Type': 'application/json' } : {}) } });
+    if (!response.ok) { const data = await readJson(response); throw new Error(data.error || `HTTP ${response.status}`); }
+    return response;
+}
+function selectedId() {
+    const id = document.getElementById('managedId').value.trim();
+    if (!id) throw new Error('Select a file or enter its ID'); return encodeURIComponent(id);
+}
+function managedResult(value) {
+    const result = document.getElementById('managedResult');
+    result.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2); result.style.whiteSpace = 'pre-wrap';
+}
+function clearSelection() {
+    selectedFile = null; clearFileKey();
+    for (const id of ['fileKeyResult','fileKeyList','viewLinkList','viewLinkResult','temporaryLinkResult','managedResult']) document.getElementById(id).replaceChildren();
+    document.getElementById('viewKeyId').replaceChildren(new Option('Create or list file keys first',''));
+    document.getElementById('selectedFileInfo').textContent = 'Load file details to continue.';
+}
+function selectFile(file) {
+    if (selectedFile?.id !== file.id) clearSelection();
+    selectedFile = file;
+    document.getElementById('managedId').value = file.id;
+    document.getElementById('managedVisibility').value = file.visibility;
+    document.getElementById('displayFilename').value = file.originalName;
+    const url = new URL(file.url, getCdnUrl()).href;
+    document.getElementById('protectedFileUrl').value = url;
+    for (const id of ['deleteFileInput','retentionFile','moveFileInput']) document.getElementById(id).value = file.path;
+    const summary = document.getElementById('selectedFileInfo'); summary.replaceChildren();
+    const name = document.createElement('strong'); name.textContent = file.originalName;
+    const info = document.createElement('div'); info.textContent = `${file.visibility === 'protected' ? 'Protected' : 'Public'} · ${formatBytes(file.size)} · ${file.expiresAt === null ? 'Permanent until deleted' : expirationText(file.expiresAt)}`;
+    const link = document.createElement('a'); link.href = url; link.textContent = url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+    summary.append(name, info, link);
+}
+async function listFiles(next = false) {
+    const list = document.getElementById('fileList'); list.textContent = 'Loading files…';
+    try {
+        const query = new URLSearchParams({ limit: '25' }); const folder = document.getElementById('listFolder').value.trim();
+        if (folder) query.set('folder',folder); if (next && nextCursor) query.set('after',nextCursor);
+        const data = await (await apiRequest('/api/files?' + query)).json(); nextCursor = data.next;
+        document.getElementById('nextFiles').disabled = !nextCursor; list.replaceChildren();
+        if (!data.files.length) list.textContent = 'No files found.';
+        for (const file of data.files) {
+            const button = document.createElement('button'); const title = document.createElement('strong'); title.textContent = file.originalName;
+            const details = document.createElement('small'); details.textContent = `${file.visibility} · ${formatBytes(file.size)} · ${file.path}`;
+            button.append(title,details); button.setAttribute('aria-pressed',String(selectedFile?.id === file.id));
+            button.onclick = () => { selectFile(file); for (const row of list.querySelectorAll('button')) row.setAttribute('aria-pressed', String(row === button)); };
+            list.append(button);
+        }
+    } catch (error) { list.textContent = error.message; }
+}
+async function saveMetadata() {
+    try {
+        if (selectedFile && selectedFile.visibility !== document.getElementById('managedVisibility').value && !confirm('Change visibility? Existing file keys and browser links will be invalidated. Public files can be read by anyone with the URL.')) return;
+        const body = { visibility: document.getElementById('managedVisibility').value }; const name = document.getElementById('displayFilename').value.trim(); if (name) body.originalName = name;
+        const file = await (await apiRequest(`/api/files/${selectedId()}`, { method:'PATCH',body:JSON.stringify(body) })).json();
+        clearFileKey(); selectFile(file); managedResult(`Saved ${file.originalName}.`);
+    } catch (error) { managedResult(error.message); }
+}
+async function showMetadata(raw = false) {
+    try { const file = await (await apiRequest(`/api/files/${selectedId()}`)).json(); selectFile(file); if (raw) managedResult(file); }
+    catch (error) { managedResult(error.message); }
+}
+async function copySelectedUrl() {
+    try { const file = await (await apiRequest(`/api/files/${selectedId()}`)).json(); selectFile(file); await navigator.clipboard.writeText(new URL(file.url,getCdnUrl()).href); managedResult('File URL copied. Protected file URLs still require shared access.'); }
+    catch (error) { managedResult(error.message); }
+}
+function renderBrowserLink(data, targetId = 'managedResult', label) {
+    const url = new URL(data.url,getCdnUrl()); if (url.origin !== getCdnUrl() || !['http:','https:'].includes(url.protocol)) throw new Error('Invalid link returned');
+    const result = document.getElementById(targetId); result.textContent = expirationText(data.expiresAt) + '. ';
+    const link = document.createElement('a'); link.href = url.href; link.textContent = label || (data.kind === 'view' ? 'Open View Link' : 'Open Temporary Access Link'); link.target = '_blank'; link.rel = 'noopener noreferrer';
+    const copy = document.createElement('button'); copy.textContent = 'Copy Link'; copy.onclick = async () => { try { await navigator.clipboard.writeText(url.href); copy.textContent = 'Copied'; } catch { link.focus(); } };
+    result.append(link, document.createTextNode(' '), copy); return url;
+}
+function fileKeyExpiration() {
+    const value = document.getElementById('accessKeyHours').value.trim(); if (value === '') return null;
+    const hours = Number(value); if (!Number.isSafeInteger(hours) || hours < 1 || !Number.isSafeInteger(Date.now() + hours * 3600000)) throw new Error('Enter a positive whole number of hours, or leave blank for the file’s lifetime');
+    return Date.now() + hours * 3600000;
+}
+function displayCreatedKey(key) {
+    document.getElementById('createdFileKey').value = key.key; document.getElementById('createdKeyPanel').hidden = false;
+    document.getElementById('createdKeyExpiry').textContent = expirationText(key.expiresAt) + '. Copy now; this secret is shown only once.';
+    const select = document.getElementById('viewKeyId'); if (!Array.from(select.options).some(o => o.value === key.id)) select.add(new Option(key.id + ' · ' + expirationText(key.expiresAt),key.id)); select.value = key.id;
+}
+function clearFileKey() { document.getElementById('createdFileKey').value = ''; document.getElementById('createdKeyPanel').hidden = true; }
+async function copyFileKey() {
+    const input = document.getElementById('createdFileKey'); try { await navigator.clipboard.writeText(input.value); document.getElementById('createdKeyExpiry').textContent += ' Copied.'; } catch { input.focus(); input.select(); }
+}
+async function createFileAccessKey() {
+    try { const key = await (await apiRequest(`/api/files/${selectedId()}/access-keys`, { method:'POST',body:JSON.stringify({expiresAt:fileKeyExpiration()}) })).json(); displayCreatedKey(key); document.getElementById('fileKeyResult').textContent = 'File Access Key created. Copy it now, or create a View Link using this key.'; }
+    catch (error) { document.getElementById('fileKeyResult').textContent = error.message; }
+}
+async function createLink() {
+    const result = document.getElementById('temporaryLinkResult'); result.textContent = 'Creating Temporary Access Link…';
+    try { const data = await (await apiRequest(`/api/files/${selectedId()}/links`, {method:'POST',body:JSON.stringify({kind:'temporary',expiresIn:Number(document.getElementById('linkSeconds').value),download:document.getElementById('linkDownload').value === 'true'})})).json(); renderBrowserLink(data,'temporaryLinkResult'); }
+    catch (error) { result.textContent = error.message; }
+}
+async function createViewLink() {
+    const result = document.getElementById('viewLinkResult'); result.textContent = 'Creating View Link…';
+    try { const keyId = document.getElementById('viewKeyId').value; if (!keyId) throw new Error('Create or select a File Access Key first'); const data = await (await apiRequest(`/api/files/${selectedId()}/links`, {method:'POST',body:JSON.stringify({kind:'view',keyId})})).json(); renderBrowserLink(data,'viewLinkResult'); }
+    catch (error) { result.textContent = error.message; }
+}
+async function createShareLink() {
+    const result = document.getElementById('viewLinkResult'); result.textContent = 'Creating key and View Link…';
+    try { const data = await (await apiRequest(`/api/files/${selectedId()}/links`,{method:'POST',body:JSON.stringify({kind:'view',createAccessKey:true,accessKeyExpiresAt:fileKeyExpiration()})})).json(); displayCreatedKey(data.accessKey); renderBrowserLink(data,'viewLinkResult'); }
+    catch (error) { result.textContent = error.message; }
+}
+async function listFileAccessKeys() {
+    const list = document.getElementById('fileKeyList'); list.textContent = 'Loading keys…';
+    try {
+        const fileId = selectedId(); const data = await (await apiRequest(`/api/files/${fileId}/access-keys`)).json(); list.replaceChildren();
+        const select = document.getElementById('viewKeyId'); select.replaceChildren(new Option('Select a File Access Key',''));
+        if (!data.keys.length) list.textContent = 'No File Access Keys yet.';
+        for (const key of data.keys) {
+            const row = document.createElement('div'); const status = key.revokedAt ? 'revoked' : key.expiresAt && key.expiresAt <= Date.now() ? 'expired' : 'active';
+            row.textContent = `${key.id} · ${expirationText(key.expiresAt,status)} `;
+            if (status === 'active') {
+                select.add(new Option(key.id + ' · ' + expirationText(key.expiresAt),key.id));
+                const button = document.createElement('button'); button.className = 'danger'; button.textContent = 'Revoke Key';
+                button.onclick = async () => { if (!confirm('Revoke this key and all its View Links?')) return; try { await apiRequest(`/api/files/${fileId}/access-keys/${encodeURIComponent(key.id)}`,{method:'DELETE'}); clearFileKey(); await listFileAccessKeys(); await listViewLinks(); } catch(error) { managedResult(error.message); } }; row.append(button);
+            }
+            list.append(row);
+        }
+    } catch (error) { list.textContent = error.message; }
+}
+async function listViewLinks() {
+    const list = document.getElementById('viewLinkList'); list.textContent = 'Loading View Links…';
+    try {
+        const fileId = selectedId(), data = await (await apiRequest(`/api/files/${fileId}/view-links`)).json(); list.replaceChildren(); if (!data.links.length) list.textContent = 'No View Links yet. Link secrets cannot be retrieved.';
+        for (const link of data.links) {
+            const row = document.createElement('div'); row.textContent = `${link.id} · ${expirationText(link.expiresAt,link.status)} · Key ${link.keyId} `;
+            if (link.status === 'active') { const button = document.createElement('button'); button.textContent = 'Revoke View Link'; button.className = 'danger'; button.onclick = async () => { if (!confirm('Revoke this View Link? Its key will stay active.')) return; try { await apiRequest(`/api/files/${fileId}/view-links/${encodeURIComponent(link.id)}`,{method:'DELETE'}); await listViewLinks(); } catch(error) { managedResult(error.message); } }; row.append(button); }
+            list.append(row);
+        }
+    } catch(error) { list.textContent = error.message; }
+}
+async function revokeLinks() {
+    if (!confirm('Revoke every browser link for this file? File Access Keys remain active.')) return;
+    try { await apiRequest(`/api/files/${selectedId()}/revoke-links`,{method:'POST',body:'{}'}); document.getElementById('viewLinkResult').replaceChildren(); document.getElementById('temporaryLinkResult').replaceChildren(); managedResult('All browser links revoked. File Access Keys can still create fresh links.'); await listViewLinks(); }
+    catch (error) { managedResult(error.message); }
+}
+async function revokeSharedAccess() {
+    if (!confirm('Revoke all File Access Keys and browser links for this file?')) return;
+    try { await apiRequest(`/api/files/${selectedId()}/revoke-access`,{method:'POST',body:'{}'}); clearFileKey(); document.getElementById('viewLinkResult').replaceChildren(); document.getElementById('temporaryLinkResult').replaceChildren(); managedResult('All generated file keys and browser links for this file have been revoked.'); await listFileAccessKeys(); await listViewLinks(); }
+    catch (error) { managedResult(error.message); }
+}
+async function protectedDownload() {
+    try { const data = await (await apiRequest(`/api/files/${selectedId()}/links`,{method:'POST',body:JSON.stringify({download:true})})).json(); const url = renderBrowserLink(data,'managedResult','Download file'); const a = document.createElement('a'); a.href = url.href; a.click(); }
+    catch(error) { managedResult(error.message); }
+}
+async function openProtectedFile(download) {
+    const result = document.getElementById('protectedReaderResult'); result.textContent = 'Creating browser link…';
+    try {
+        const key = document.getElementById('protectedFileKey').value.trim(); if (!key) throw new Error('Enter the File Access Key supplied for this file');
+        const input = document.getElementById('protectedFileUrl').value.trim(); if (!input) throw new Error('Enter the file URL');
+        const url = new URL(input,getCdnUrl()); if (url.origin !== getCdnUrl() || url.username || url.password) throw new Error('The file must belong to the configured CDN');
+        const origin = await verifyCdnConnection(); const kind = document.getElementById('readerLinkKind').value;
+        const body = {path:decodeURIComponent(url.pathname.slice(1)),kind,download}; if (kind === 'temporary') body.expiresIn = Number(document.getElementById('readerLinkSeconds').value);
+        const response = await fetch(origin + '/api/access-links',{method:'POST',credentials:'omit',redirect:'error',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const data = await readJson(response); if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`); renderBrowserLink(data,'protectedReaderResult',download ? 'Download file' : undefined);
+    } catch(error) { result.textContent = error.message; }
+}
+// Keep feedback and duplicate-submit prevention consistent across actions.
+for (const button of document.querySelectorAll('button[onclick]:not(#uploadButton)')) {
+    button.setAttribute('onclick', 'return ' + button.getAttribute('onclick'));
+    const handler = button.onclick;
+    button.onclick = async function(event) {
+        if (this.disabled) return;
+        this.disabled = true; this.setAttribute('aria-busy','true');
+        try { await handler.call(this,event); } finally { this.removeAttribute('aria-busy'); this.disabled = this.id === 'nextFiles' ? !nextCursor : false; }
+    };
+}
+const healthObserver = new MutationObserver(() => {
+    for (const id of ['healthState','healthDatabase','healthStorage']) {
+        const node = document.getElementById(id); node.dataset.state = /^(ok|ready|online)$/i.test(node.textContent.trim()) ? 'good' : /unhealthy|unreachable|not ready|error|unknown|pending/i.test(node.textContent) ? 'bad' : '';
+    }
+});
+for (const id of ['healthState','healthDatabase','healthStorage']) healthObserver.observe(document.getElementById(id), {childList:true});
+document.getElementById('readerLinkKind').onchange = () => {
+    const temporary = document.getElementById('readerLinkKind').value === 'temporary';
+    document.getElementById('readerLinkSeconds').closest('.field').hidden = !temporary;
+    document.querySelector('button[onclick*="openProtectedFile(false)"]').textContent = temporary ? 'Create Temporary Access Link' : 'Create View Link';
+};
+document.getElementById('readerLinkKind').onchange();
+const providedFile = new URLSearchParams(location.search).get("file");
+if (providedFile) document.getElementById("protectedFileUrl").value = new URL(providedFile.startsWith("/") ? providedFile : "/" + providedFile, getCdnUrl()).href;
+
 </script>
 
 </body>
