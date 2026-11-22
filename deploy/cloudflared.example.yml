@@ -1,8 +1,0 @@
-# Configure an existing named tunnel using your local credentials file.
-tunnel: YOUR_TUNNEL_ID
-credentials-file: /etc/cloudflared/YOUR_TUNNEL_ID.json
-
-ingress:
-  - hostname: cdn.example.com
-    service: http://127.0.0.1:3010
-  - service: http_status:404
