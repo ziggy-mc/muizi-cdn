@@ -1,0 +1,30 @@
+[Unit]
+Description=MUIZI CDN
+After=network.target
+
+[Service]
+Type=simple
+User=muizi
+Group=muizi
+WorkingDirectory=/opt/muizi-cdn
+Environment=NODE_ENV=production
+Environment=DATA_DIR=/var/lib/muizi-cdn
+EnvironmentFile=/etc/muizi-cdn.env
+ExecStart=/usr/bin/node /opt/muizi-cdn/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=35
+UMask=0077
+StateDirectory=muizi-cdn
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/muizi-cdn
+# Adjust to the media workload; these also bound FFmpeg's aggregate resource use.
+MemoryMax=2G
+TasksMax=256
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target
